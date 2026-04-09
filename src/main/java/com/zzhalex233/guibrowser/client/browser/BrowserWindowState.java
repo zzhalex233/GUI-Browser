@@ -29,8 +29,6 @@ public final class BrowserWindowState {
         this.dragging = true;
         this.dragOffsetX = dragOffsetX;
         this.dragOffsetY = dragOffsetY;
-        this.x = mouseX - dragOffsetX;
-        this.y = mouseY - dragOffsetY;
     }
 
     public void dragTo(int mouseX, int mouseY, int viewportWidth, int viewportHeight) {

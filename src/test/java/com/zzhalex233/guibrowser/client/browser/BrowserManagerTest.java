@@ -43,6 +43,18 @@ class BrowserManagerTest {
     }
 
     @Test
+    void handleEscFromRootClosesOpenEmptyBrowser() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        manager.openEmptyBrowser();
+        manager.getWindowState().beginDrag(20, 10, 20, 10);
+
+        manager.handleEscFromRoot();
+
+        assertEquals(BrowserState.CLOSED, manager.getState());
+        assertFalse(manager.getWindowState().isDragging());
+    }
+
+    @Test
     void defaultsUseMinimizeEscAndPositiveOpenKeyCode() {
         BrowserConfig config = BrowserConfig.defaults();
 
