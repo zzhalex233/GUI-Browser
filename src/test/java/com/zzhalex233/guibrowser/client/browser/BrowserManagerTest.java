@@ -57,10 +57,11 @@ class BrowserManagerTest {
         window.beginDrag(20, 10, 20, 10);
         window.dragTo(-500, -500, 320, 240);
 
-        assertTrue(window.getX() >= 0);
-        assertTrue(window.getY() >= 0);
+        assertEquals(0, window.getX());
+        assertEquals(0, window.getY());
         assertTrue(window.isDragging());
-        assertFalse(window.getWidth() <= 0);
-        assertFalse(window.getHeight() <= 0);
+        window.endDrag();
+        assertFalse(window.isDragging());
     }
 }
+

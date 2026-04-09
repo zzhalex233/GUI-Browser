@@ -140,7 +140,11 @@ public final class BrowserConfigLoader {
             LOGGER.warning("Invalid escAction '" + escActionName + "' in browser config. Using default " + defaults.getEscAction() + ".");
             escAction = defaults.getEscAction();
         }
-        return new BrowserConfig(escAction, openBrowserKeyCode);
+        int sanitizedKeyCode = openBrowserKeyCode > 0 ? openBrowserKeyCode : defaults.getOpenBrowserKeyCode();
+        if (sanitizedKeyCode != openBrowserKeyCode) {
+            LOGGER.warning("Invalid openBrowserKeyCode '" + openBrowserKeyCode + "' in browser config. Using default " + defaults.getOpenBrowserKeyCode() + ".");
+        }
+        return new BrowserConfig(escAction, sanitizedKeyCode);
     }
 
     private static int parseInt(String value, int defaultValue) {

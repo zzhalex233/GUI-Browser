@@ -32,4 +32,14 @@ class BrowserConfigLoaderTest {
         assertEquals(BrowserConfig.defaults().getEscAction(), loaded.getEscAction());
         assertEquals(66, loaded.getOpenBrowserKeyCode());
     }
+
+    @Test
+    void invalidKeyCodeFallsBackToDefault(@TempDir Path tempDir) throws Exception {
+        Path configFile = tempDir.resolve("guibrowser.cfg");
+        java.nio.file.Files.writeString(configFile, "browser.escAction=MINIMIZE\nbrowser.openBrowserKeyCode=0\n");
+
+        BrowserConfig loaded = BrowserConfigLoader.load(configFile.toFile());
+
+        assertEquals(BrowserConfig.defaults().getOpenBrowserKeyCode(), loaded.getOpenBrowserKeyCode());
+    }
 }
