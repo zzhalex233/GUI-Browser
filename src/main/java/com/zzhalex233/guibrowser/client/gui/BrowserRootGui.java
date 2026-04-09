@@ -1,6 +1,6 @@
 package com.zzhalex233.guibrowser.client.gui;
 
-import com.zzhalex233.guibrowser.client.browser.BrowserManager;
+import com.zzhalex233.guibrowser.client.browser.BrowserShellController;
 import com.zzhalex233.guibrowser.client.browser.BrowserWindowState;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
@@ -17,22 +17,22 @@ public class BrowserRootGui extends GuiScreen {
     private static final int BUTTON_COLOR = 0xFF43536A;
     private static final int BUTTON_HOVER_COLOR = 0xFF5E748F;
 
-    private final BrowserManager manager;
+    private final BrowserShellController controller;
 
-    public BrowserRootGui(BrowserManager manager) {
-        this.manager = manager;
+    public BrowserRootGui(BrowserShellController controller) {
+        this.controller = controller;
     }
 
     @Override
     public void initGui() {
-        manager.getWindowState().clampToViewport(width, height);
+        controller.getManager().getWindowState().clampToViewport(width, height);
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
 
-        BrowserWindowState window = manager.getWindowState();
+        BrowserWindowState window = controller.getManager().getWindowState();
         window.clampToViewport(width, height);
 
         BrowserChromeLayout.Rect titleBar = BrowserChromeLayout.titleBar(window);
@@ -74,8 +74,7 @@ public class BrowserRootGui extends GuiScreen {
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         if (keyCode == Keyboard.KEY_ESCAPE) {
-            manager.handleEscFromRoot();
-            mc.displayGuiScreen(null);
+            controller.handleEscFromRoot();
             return;
         }
         super.keyTyped(typedChar, keyCode);
@@ -83,15 +82,14 @@ public class BrowserRootGui extends GuiScreen {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        BrowserWindowState window = manager.getWindowState();
+        BrowserWindowState window = controller.getManager().getWindowState();
         BrowserChromeLayout.Rect minimizeButton = BrowserChromeLayout.minimizeButton(window);
         BrowserChromeLayout.Rect closeButton = BrowserChromeLayout.closeButton(window);
         BrowserChromeLayout.Rect dragRegion = BrowserChromeLayout.dragRegion(window);
 
         if (mouseButton == 0) {
             if (closeButton.contains(mouseX, mouseY) || minimizeButton.contains(mouseX, mouseY)) {
-                manager.closeBrowser();
-                mc.displayGuiScreen(null);
+                controller.handleChromeCloseOrMinimize();
                 return;
             }
             if (dragRegion.contains(mouseX, mouseY)) {
@@ -105,7 +103,7 @@ public class BrowserRootGui extends GuiScreen {
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-        BrowserWindowState window = manager.getWindowState();
+        BrowserWindowState window = controller.getManager().getWindowState();
         if (clickedMouseButton == 0 && window.isDragging()) {
             window.dragTo(mouseX, mouseY, width, height);
             return;
@@ -115,13 +113,13 @@ public class BrowserRootGui extends GuiScreen {
 
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
-        manager.getWindowState().endDrag();
+        controller.getManager().getWindowState().endDrag();
         super.mouseReleased(mouseX, mouseY, state);
     }
 
     @Override
     public void onGuiClosed() {
-        manager.getWindowState().endDrag();
+        controller.getManager().getWindowState().endDrag();
         super.onGuiClosed();
     }
 

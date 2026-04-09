@@ -1,20 +1,18 @@
 package com.zzhalex233.guibrowser.client.event;
 
-import com.zzhalex233.guibrowser.client.browser.BrowserManager;
-import com.zzhalex233.guibrowser.client.browser.BrowserState;
-import com.zzhalex233.guibrowser.client.gui.BrowserRootGui;
+import com.zzhalex233.guibrowser.client.browser.BrowserShellController;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 public class ClientForgeEventHandler {
+    private final BrowserShellController controller;
+
+    public ClientForgeEventHandler(BrowserShellController controller) {
+        this.controller = controller;
+    }
+
     @SubscribeEvent
     public void onGuiOpen(GuiOpenEvent event) {
-        BrowserManager manager = BrowserManager.getInstance();
-        if (manager.getState() == BrowserState.CLOSED) {
-            return;
-        }
-        if (!(event.getGui() instanceof BrowserRootGui)) {
-            manager.closeBrowser();
-        }
+        controller.handleExternalGuiOpen(event.getGui());
     }
 }
