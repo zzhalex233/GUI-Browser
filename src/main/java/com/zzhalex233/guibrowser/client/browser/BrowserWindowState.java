@@ -29,17 +29,24 @@ public final class BrowserWindowState {
         this.dragging = true;
         this.dragOffsetX = dragOffsetX;
         this.dragOffsetY = dragOffsetY;
-        dragTo(mouseX, mouseY, Integer.MAX_VALUE, Integer.MAX_VALUE);
+        this.x = mouseX - dragOffsetX;
+        this.y = mouseY - dragOffsetY;
     }
 
     public void dragTo(int mouseX, int mouseY, int viewportWidth, int viewportHeight) {
         if (!dragging) {
             return;
         }
+        this.x = mouseX - dragOffsetX;
+        this.y = mouseY - dragOffsetY;
+        clampToViewport(viewportWidth, viewportHeight);
+    }
+
+    public void clampToViewport(int viewportWidth, int viewportHeight) {
         int maxX = Math.max(0, viewportWidth - width);
         int maxY = Math.max(0, viewportHeight - height);
-        this.x = clamp(mouseX - dragOffsetX, 0, maxX);
-        this.y = clamp(mouseY - dragOffsetY, 0, maxY);
+        this.x = clamp(x, 0, maxX);
+        this.y = clamp(y, 0, maxY);
     }
 
     public void endDrag() {

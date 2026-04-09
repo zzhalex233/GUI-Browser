@@ -63,5 +63,14 @@ class BrowserManagerTest {
         window.endDrag();
         assertFalse(window.isDragging());
     }
-}
 
+    @Test
+    void clampToViewportKeepsWindowReachableAfterResize() {
+        BrowserWindowState window = new BrowserWindowState(500, 400, 360, 240);
+
+        window.clampToViewport(320, 240);
+
+        assertEquals(0, window.getX());
+        assertEquals(0, window.getY());
+    }
+}
