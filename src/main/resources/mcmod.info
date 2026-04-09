@@ -1,0 +1,12 @@
+[{
+  "modid": "guibrowser",
+  "name": "GUI Browser",
+  "version": "1.0.0",
+  "mcversion": "1.12.2",
+  "description": "Unified browser shell for GUI-capable screens in Minecraft 1.12.2.",
+  "authorList": ["zzhalex233"],
+  "credits": "",
+  "url": "https://github.com/zzhalex233/GUI-Browser",
+  "updateJSON": "",
+  "logoFile": ""
+}]
