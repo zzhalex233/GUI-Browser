@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 class BrowserManagerTest {
 
@@ -36,14 +35,19 @@ class BrowserManagerTest {
     }
 
     @Test
-    void toggleBrowserAlternatesPhaseOneState() {
+    void toggleBrowserOpensFromClosedAndRestoresFromMinimized() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        Object hosted = new Object();
 
         manager.toggleBrowser();
         assertEquals(BrowserState.OPEN_EMPTY, manager.getState());
 
+        manager.captureHostedContent(hosted, "Chest");
+        manager.minimizeBrowser();
         manager.toggleBrowser();
-        assertEquals(BrowserState.CLOSED, manager.getState());
+
+        assertEquals(BrowserState.OPEN_WITH_TABS, manager.getState());
+        assertSame(hosted, manager.getHostedContent());
     }
 
     @Test
@@ -59,11 +63,57 @@ class BrowserManagerTest {
     }
 
     @Test
+    void handleEscFromRootMinimizesHostedContentWhenConfigured() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        Object hosted = new Object();
+
+        manager.captureHostedContent(hosted, "Chest");
+        manager.handleEscFromRoot();
+
+        assertEquals(BrowserState.MINIMIZED_WITH_TABS, manager.getState());
+        assertSame(hosted, manager.getHostedContent());
+    }
+
+    @Test
+    void handleEscFromRootClosesHostedContentWhenConfiguredToClose() {
+        BrowserConfig config = BrowserConfig.defaults().withEscAction(EscAction.CLOSE);
+        BrowserManager manager = BrowserManager.createForTests(config);
+
+        manager.captureHostedContent(new Object(), "Chest");
+        manager.handleEscFromRoot();
+
+        assertEquals(BrowserState.CLOSED, manager.getState());
+        assertFalse(manager.hasHostedContent());
+    }
+
+    @Test
+    void armingCaptureDoesNotOpenTheBrowserByItself() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+
+        manager.armCaptureRequest(BrowserCaptureRequest.hotkeyRequest());
+
+        assertEquals(BrowserState.CLOSED, manager.getState());
+        assertTrue(manager.hasPendingCaptureRequest());
+    }
+
+    @Test
+    void captureRequestExpiresAfterTimeout() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        manager.armCaptureRequest(BrowserCaptureRequest.hotkeyRequest());
+
+        for (int i = 0; i < BrowserCaptureRequest.DEFAULT_TICKS_TO_LIVE; i++) {
+            manager.tickCaptureRequest();
+        }
+
+        assertFalse(manager.hasPendingCaptureRequest());
+    }
+
+    @Test
     void defaultsUseMinimizeEscAndPositiveOpenKeyCode() {
         BrowserConfig config = BrowserConfig.defaults();
 
         assertEquals(EscAction.MINIMIZE, config.getEscAction());
-        assertTrue(config.getOpenBrowserKeyCode() > 0);
+        assertTrue(config.getCaptureHotkeyKeyCode() > 0);
     }
 
     @Test
@@ -138,6 +188,7 @@ class BrowserManagerTest {
 
         manager.captureHostedContent(hosted, "Chest");
         manager.minimizeBrowser();
+        manager.armCaptureRequest(BrowserCaptureRequest.hotkeyRequest());
         manager.closeBrowser();
         manager.restoreBrowser();
 

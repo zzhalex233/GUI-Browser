@@ -41,6 +41,10 @@ public class BrowserShellController {
         return delegatingToHostedContent;
     }
 
+    public boolean isCaptureRequested() {
+        return manager.hasPendingCaptureRequest();
+    }
+
     public void beginHostedContentDelegation() {
         delegatingToHostedContent = true;
     }
@@ -66,6 +70,39 @@ public class BrowserShellController {
             pendingShowRoot = true;
         }
         return true;
+    }
+
+    public boolean requestHotkeyCapture() {
+        return requestQuickCapture();
+    }
+
+    public boolean requestQuickCapture() {
+        if (!host.canTriggerQuickCapture()) {
+            return false;
+        }
+        manager.armCaptureRequest(BrowserCaptureRequest.hotkeyRequest());
+        try {
+            host.performQuickCaptureInteraction(this);
+        } finally {
+            manager.clearCaptureRequest();
+        }
+        return true;
+    }
+
+    public void tickCaptureRequest() {
+        manager.tickCaptureRequest();
+    }
+
+    public boolean hasPendingCaptureRequest() {
+        return manager.hasPendingCaptureRequest();
+    }
+
+    public BrowserCaptureRequest consumeCaptureRequest() {
+        return manager.consumeCaptureRequest();
+    }
+
+    public void clearCaptureRequest() {
+        manager.clearCaptureRequest();
     }
 
     public void flushDeferredUiActions() {
@@ -112,7 +149,16 @@ public class BrowserShellController {
     }
 
     public boolean handleEscFromRoot() {
-        return closeBrowser();
+        BrowserState previousState = manager.getState();
+        manager.handleEscFromRoot();
+        if ((manager.getState() == BrowserState.CLOSED || manager.getState() == BrowserState.MINIMIZED_WITH_TABS)
+            && host.isBrowserRootActive()) {
+            if (manager.getState() == BrowserState.CLOSED) {
+                host.prepareToCloseBrowser(this);
+            }
+            host.closeCurrentScreen();
+        }
+        return previousState != manager.getState();
     }
 
     public boolean handleChromeCloseOrMinimize() {

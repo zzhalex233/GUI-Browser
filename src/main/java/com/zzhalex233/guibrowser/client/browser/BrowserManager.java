@@ -1,6 +1,7 @@
 package com.zzhalex233.guibrowser.client.browser;
 
 import com.zzhalex233.guibrowser.config.BrowserConfig;
+import com.zzhalex233.guibrowser.config.EscAction;
 
 import java.util.Objects;
 
@@ -65,6 +66,38 @@ public final class BrowserManager {
         return activeTabTitle;
     }
 
+    public boolean hasCaptureRequest() {
+        return captureRequest != null;
+    }
+
+    public void beginCaptureRequest() {
+        armCaptureRequest(BrowserCaptureRequest.hotkeyRequest());
+    }
+
+    public void armCaptureRequest(BrowserCaptureRequest captureRequest) {
+        this.captureRequest = Objects.requireNonNull(captureRequest, "captureRequest");
+    }
+
+    public boolean hasPendingCaptureRequest() {
+        return captureRequest != null;
+    }
+
+    public BrowserCaptureRequest consumeCaptureRequest() {
+        BrowserCaptureRequest request = captureRequest;
+        captureRequest = null;
+        return request;
+    }
+
+    public void tickCaptureRequest() {
+        if (captureRequest != null) {
+            captureRequest = captureRequest.tick();
+        }
+    }
+
+    public void clearCaptureRequest() {
+        captureRequest = null;
+    }
+
     public void openEmptyBrowser() {
         hostedContent = null;
         activeTabTitle = null;
@@ -119,14 +152,26 @@ public final class BrowserManager {
     public void toggleBrowser() {
         if (state == BrowserState.CLOSED) {
             openEmptyBrowser();
-        } else {
-            closeBrowser();
+            return;
         }
+        if (state == BrowserState.MINIMIZED_WITH_TABS) {
+            restoreBrowser();
+            return;
+        }
+        closeBrowser();
     }
 
     public void handleEscFromRoot() {
-        if (state != BrowserState.CLOSED) {
+        if (state == BrowserState.OPEN_EMPTY) {
             closeBrowser();
+            return;
+        }
+        if (state == BrowserState.OPEN_WITH_TABS) {
+            if (config.getEscAction() == EscAction.MINIMIZE) {
+                minimizeBrowser();
+            } else {
+                closeBrowser();
+            }
         }
     }
 
@@ -136,8 +181,5 @@ public final class BrowserManager {
         }
         String trimmed = tabTitle.trim();
         return trimmed.isEmpty() ? "GUI" : trimmed;
-    }
-
-    private static final class BrowserCaptureRequest {
     }
 }

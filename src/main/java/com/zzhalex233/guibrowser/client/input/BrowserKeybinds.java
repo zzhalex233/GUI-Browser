@@ -5,7 +5,7 @@ import net.minecraft.client.settings.KeyBinding;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 
 public final class BrowserKeybinds {
-    public static KeyBinding OPEN_BROWSER;
+    public static KeyBinding CAPTURE_GUI;
 
     private static boolean registered;
 
@@ -16,12 +16,12 @@ public final class BrowserKeybinds {
         if (registered) {
             return;
         }
-        OPEN_BROWSER = new KeyBinding(
-            "key.guibrowser.open_browser",
-            BrowserManager.getInstance().getConfig().getOpenBrowserKeyCode(),
+        CAPTURE_GUI = new KeyBinding(
+            "key.guibrowser.capture_gui",
+            BrowserManager.getInstance().getConfig().getCaptureHotkeyKeyCode(),
             "key.categories.guibrowser"
         );
-        ClientRegistry.registerKeyBinding(OPEN_BROWSER);
+        ClientRegistry.registerKeyBinding(CAPTURE_GUI);
         registered = true;
     }
 }

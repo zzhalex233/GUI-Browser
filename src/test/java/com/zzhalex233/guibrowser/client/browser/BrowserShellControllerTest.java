@@ -12,7 +12,7 @@ class BrowserShellControllerTest {
     @Test
     void toggleFromClosedOpensEmptyBrowserAndRequestsRootScreen() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
-        FakeHost host = new FakeHost(true, false);
+        FakeHost host = new FakeHost(true, false, true);
         BrowserShellController controller = new BrowserShellController(manager, host);
 
         controller.toggleBrowser();
@@ -27,7 +27,7 @@ class BrowserShellControllerTest {
     void toggleWhileBrowserRootActiveClosesBrowserAndRequestsCurrentScreenClose() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
         manager.openEmptyBrowser();
-        FakeHost host = new FakeHost(true, true);
+        FakeHost host = new FakeHost(true, true, true);
         BrowserShellController controller = new BrowserShellController(manager, host);
 
         controller.toggleBrowser();
@@ -40,16 +40,16 @@ class BrowserShellControllerTest {
     }
 
     @Test
-    void escFromRootClosesBrowserAndEndsClosed() {
+    void escFromRootMinimizesHostedBrowserAndClosesRootScreen() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
-        manager.openEmptyBrowser();
-        FakeHost host = new FakeHost(true, true);
+        manager.captureHostedContent(new Object(), "Chest");
+        FakeHost host = new FakeHost(true, true, true);
         BrowserShellController controller = new BrowserShellController(manager, host);
 
         controller.handleEscFromRoot();
 
-        assertEquals(BrowserState.CLOSED, manager.getState());
-        assertEquals(1, host.prepareToCloseBrowserRequests);
+        assertEquals(BrowserState.MINIMIZED_WITH_TABS, manager.getState());
+        assertEquals(0, host.prepareToCloseBrowserRequests);
         assertEquals(1, host.closeCurrentScreenRequests);
         assertFalse(host.browserRootActive);
     }
@@ -58,7 +58,7 @@ class BrowserShellControllerTest {
     void chromeCloseOrMinimizeClosesEmptyShell() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
         manager.openEmptyBrowser();
-        FakeHost host = new FakeHost(true, true);
+        FakeHost host = new FakeHost(true, true, true);
         BrowserShellController controller = new BrowserShellController(manager, host);
 
         controller.handleChromeCloseOrMinimize();
@@ -72,7 +72,7 @@ class BrowserShellControllerTest {
     @Test
     void commandOpenQueuesBrowserRootUntilFlush() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
-        FakeHost host = new FakeHost(true, false);
+        FakeHost host = new FakeHost(true, false, true);
         BrowserShellController controller = new BrowserShellController(manager, host);
 
         assertTrue(controller.requestBrowserOpenFromCommand());
@@ -89,7 +89,7 @@ class BrowserShellControllerTest {
     @Test
     void commandOpenRestoresMinimizedBrowserInsteadOfOpeningEmpty() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
-        FakeHost host = new FakeHost(true, false);
+        FakeHost host = new FakeHost(true, false, true);
         BrowserShellController controller = new BrowserShellController(manager, host);
 
         manager.captureHostedContent(new Object(), "Chest");
@@ -105,9 +105,45 @@ class BrowserShellControllerTest {
     }
 
     @Test
+    void hotkeyCaptureTriggersOriginalInteractionWithoutLeavingPendingRequest() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        FakeHost host = new FakeHost(true, false, true);
+        BrowserShellController controller = new BrowserShellController(manager, host);
+
+        assertTrue(controller.requestHotkeyCapture());
+
+        assertEquals(BrowserState.CLOSED, manager.getState());
+        assertFalse(controller.hasPendingCaptureRequest());
+        assertEquals(1, host.quickCaptureInteractionRequests);
+        assertEquals(0, host.openBrowserRootRequests);
+        assertFalse(host.browserRootActive);
+    }
+
+    @Test
+    void hotkeyCaptureReturnsFalseWhenQuickCaptureCannotRun() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        FakeHost host = new FakeHost(true, false, false);
+        BrowserShellController controller = new BrowserShellController(manager, host);
+
+        assertFalse(controller.requestHotkeyCapture());
+        assertFalse(controller.hasPendingCaptureRequest());
+        assertEquals(0, host.quickCaptureInteractionRequests);
+    }
+
+    @Test
+    void hotkeyCaptureLeavesNoPendingRequestToExpire() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        BrowserShellController controller = new BrowserShellController(manager, new FakeHost(true, false, true));
+
+        assertTrue(controller.requestHotkeyCapture());
+
+        assertFalse(controller.hasPendingCaptureRequest());
+    }
+
+    @Test
     void externalCloseSignalDoesNotCancelDeferredCommandOpen() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
-        FakeHost host = new FakeHost(true, false);
+        FakeHost host = new FakeHost(true, false, true);
         BrowserShellController controller = new BrowserShellController(manager, host);
 
         assertTrue(controller.requestBrowserOpenFromCommand());
@@ -124,7 +160,7 @@ class BrowserShellControllerTest {
     void externalCloseSignalDoesNotCloseActiveBrowserRoot() {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
         manager.openEmptyBrowser();
-        FakeHost host = new FakeHost(true, true);
+        FakeHost host = new FakeHost(true, true, true);
         BrowserShellController controller = new BrowserShellController(manager, host);
 
         controller.handleExternalCloseSignal();
@@ -137,14 +173,17 @@ class BrowserShellControllerTest {
 
     private static final class FakeHost implements BrowserShellHost {
         private final boolean inWorld;
+        private final boolean canTriggerQuickCapture;
         private boolean browserRootActive;
         private int openBrowserRootRequests;
         private int prepareToCloseBrowserRequests;
         private int closeCurrentScreenRequests;
+        private int quickCaptureInteractionRequests;
 
-        private FakeHost(boolean inWorld, boolean browserRootActive) {
+        private FakeHost(boolean inWorld, boolean browserRootActive, boolean canTriggerQuickCapture) {
             this.inWorld = inWorld;
             this.browserRootActive = browserRootActive;
+            this.canTriggerQuickCapture = canTriggerQuickCapture;
         }
 
         @Override
@@ -155,6 +194,11 @@ class BrowserShellControllerTest {
         @Override
         public boolean isBrowserRootActive() {
             return browserRootActive;
+        }
+
+        @Override
+        public boolean canTriggerQuickCapture() {
+            return canTriggerQuickCapture;
         }
 
         @Override
@@ -172,6 +216,11 @@ class BrowserShellControllerTest {
         public void closeCurrentScreen() {
             closeCurrentScreenRequests++;
             browserRootActive = false;
+        }
+
+        @Override
+        public void performQuickCaptureInteraction(BrowserShellController controller) {
+            quickCaptureInteractionRequests++;
         }
     }
 }

@@ -18,12 +18,13 @@ public class BrowserHotkeyHandler {
         }
 
         controller.flushDeferredUiActions();
-        if (BrowserKeybinds.OPEN_BROWSER == null) {
+        controller.tickCaptureRequest();
+        if (BrowserKeybinds.CAPTURE_GUI == null) {
             return;
         }
 
-        while (BrowserKeybinds.OPEN_BROWSER.isPressed()) {
-            controller.toggleBrowser();
+        while (BrowserKeybinds.CAPTURE_GUI.isPressed()) {
+            controller.requestHotkeyCapture();
         }
     }
 }

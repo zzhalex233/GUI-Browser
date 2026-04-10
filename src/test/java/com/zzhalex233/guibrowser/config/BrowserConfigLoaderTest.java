@@ -19,27 +19,37 @@ class BrowserConfigLoaderTest {
         BrowserConfig loaded = BrowserConfigLoader.load(configFile.toFile());
 
         assertEquals(EscAction.CLOSE, loaded.getEscAction());
-        assertEquals(65, loaded.getOpenBrowserKeyCode());
+        assertEquals(65, loaded.getCaptureHotkeyKeyCode());
     }
 
     @Test
     void invalidEscActionFallsBackToDefault(@TempDir Path tempDir) throws Exception {
         Path configFile = tempDir.resolve("guibrowser.cfg");
-        java.nio.file.Files.writeString(configFile, "browser.escAction=NOT_A_REAL_ACTION\nbrowser.openBrowserKeyCode=66\n");
+        java.nio.file.Files.writeString(configFile, "browser.escAction=NOT_A_REAL_ACTION\nbrowser.captureHotkeyKeyCode=66\n");
 
         BrowserConfig loaded = BrowserConfigLoader.load(configFile.toFile());
 
         assertEquals(BrowserConfig.defaults().getEscAction(), loaded.getEscAction());
-        assertEquals(66, loaded.getOpenBrowserKeyCode());
+        assertEquals(66, loaded.getCaptureHotkeyKeyCode());
     }
 
     @Test
     void invalidKeyCodeFallsBackToDefault(@TempDir Path tempDir) throws Exception {
         Path configFile = tempDir.resolve("guibrowser.cfg");
-        java.nio.file.Files.writeString(configFile, "browser.escAction=MINIMIZE\nbrowser.openBrowserKeyCode=0\n");
+        java.nio.file.Files.writeString(configFile, "browser.escAction=MINIMIZE\nbrowser.captureHotkeyKeyCode=0\n");
 
         BrowserConfig loaded = BrowserConfigLoader.load(configFile.toFile());
 
-        assertEquals(BrowserConfig.defaults().getOpenBrowserKeyCode(), loaded.getOpenBrowserKeyCode());
+        assertEquals(BrowserConfig.defaults().getCaptureHotkeyKeyCode(), loaded.getCaptureHotkeyKeyCode());
+    }
+
+    @Test
+    void legacyOpenBrowserKeyFallsBackToCaptureHotkey(@TempDir Path tempDir) throws Exception {
+        Path configFile = tempDir.resolve("guibrowser.cfg");
+        java.nio.file.Files.writeString(configFile, "browser.escAction=MINIMIZE\nbrowser.openBrowserKeyCode=71\n");
+
+        BrowserConfig loaded = BrowserConfigLoader.load(configFile.toFile());
+
+        assertEquals(71, loaded.getCaptureHotkeyKeyCode());
     }
 }

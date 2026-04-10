@@ -5,7 +5,13 @@ public interface BrowserShellHost {
 
     boolean isBrowserRootActive();
 
+    boolean canTriggerQuickCapture();
+
     void showBrowserRoot(BrowserShellController controller);
 
+    void prepareToCloseBrowser(BrowserShellController controller);
+
     void closeCurrentScreen();
+
+    void performQuickCaptureInteraction(BrowserShellController controller);
 }

@@ -19,7 +19,8 @@ import java.util.logging.Logger;
 public final class BrowserConfigLoader {
     private static final Logger LOGGER = Logger.getLogger(BrowserConfigLoader.class.getName());
     private static final String ESC_ACTION_KEY = "browser.escAction";
-    private static final String OPEN_BROWSER_KEY_CODE_KEY = "browser.openBrowserKeyCode";
+    private static final String CAPTURE_HOTKEY_KEY_CODE_KEY = "browser.captureHotkeyKeyCode";
+    private static final String LEGACY_OPEN_BROWSER_KEY_CODE_KEY = "browser.openBrowserKeyCode";
 
     private BrowserConfigLoader() {
     }
@@ -55,14 +56,22 @@ public final class BrowserConfigLoader {
             String escActionName = invokeString(configurationClass, configuration, "getString",
                 new Class<?>[]{String.class, String.class, String.class, String.class},
                 new Object[]{"escAction", "browser", defaults.getEscAction().name(), "Browser ESC behavior"});
-            int openBrowserKeyCode = invokeInt(configurationClass, configuration, "getInt",
+
+            boolean hasCaptureHotkeyKey = hasKey(configurationClass, configuration, "browser", "captureHotkeyKeyCode");
+            boolean hasLegacyOpenKey = hasKey(configurationClass, configuration, "browser", "openBrowserKeyCode");
+            int captureHotkeyKeyCode = invokeInt(configurationClass, configuration, "getInt",
                 new Class<?>[]{String.class, String.class, int.class, int.class, int.class, String.class},
-                new Object[]{"openBrowserKeyCode", "browser", defaults.getOpenBrowserKeyCode(), 1, Integer.MAX_VALUE, "Key code for opening the browser"});
+                new Object[]{"captureHotkeyKeyCode", "browser", defaults.getCaptureHotkeyKeyCode(), 1, Integer.MAX_VALUE, "Key code for quick GUI capture"});
+            int legacyOpenKeyCode = invokeInt(configurationClass, configuration, "getInt",
+                new Class<?>[]{String.class, String.class, int.class, int.class, int.class, String.class},
+                new Object[]{"openBrowserKeyCode", "browser", defaults.getCaptureHotkeyKeyCode(), 1, Integer.MAX_VALUE, "Legacy key code for opening the browser"});
 
             if (hasChanged(configurationClass, configuration)) {
                 invoke(configurationClass, configuration, "save");
             }
-            return buildConfig(escActionName, openBrowserKeyCode, defaults);
+            return buildConfig(escActionName,
+                chooseCaptureHotkeyKeyCode(captureHotkeyKeyCode, hasCaptureHotkeyKey, legacyOpenKeyCode, hasLegacyOpenKey, defaults),
+                defaults);
         } catch (ClassNotFoundException e) {
             return null;
         } catch (ReflectiveOperationException | RuntimeException e) {
@@ -82,9 +91,9 @@ public final class BrowserConfigLoader {
                 new Object[]{"escAction", "browser", config.getEscAction().name(), "Browser ESC behavior"});
             invoke(configurationClass, configuration, "getInt",
                 new Class<?>[]{String.class, String.class, int.class, int.class, int.class, String.class},
-                new Object[]{"openBrowserKeyCode", "browser", config.getOpenBrowserKeyCode(), 1, Integer.MAX_VALUE, "Key code for opening the browser"});
+                new Object[]{"captureHotkeyKeyCode", "browser", config.getCaptureHotkeyKeyCode(), 1, Integer.MAX_VALUE, "Key code for quick GUI capture"});
             invokeCategorySet(configurationClass, configuration, "browser", "escAction", config.getEscAction().name());
-            invokeCategorySet(configurationClass, configuration, "browser", "openBrowserKeyCode", config.getOpenBrowserKeyCode());
+            invokeCategorySet(configurationClass, configuration, "browser", "captureHotkeyKeyCode", config.getCaptureHotkeyKeyCode());
             invoke(configurationClass, configuration, "save");
             return true;
         } catch (ClassNotFoundException e) {
@@ -110,8 +119,13 @@ public final class BrowserConfigLoader {
         }
 
         String escActionName = properties.getProperty(ESC_ACTION_KEY, defaults.getEscAction().name());
-        String openBrowserKeyCodeText = properties.getProperty(OPEN_BROWSER_KEY_CODE_KEY, Integer.toString(defaults.getOpenBrowserKeyCode()));
-        return buildConfig(escActionName, parseInt(openBrowserKeyCodeText, defaults.getOpenBrowserKeyCode()), defaults);
+        boolean hasCaptureHotkeyKey = properties.containsKey(CAPTURE_HOTKEY_KEY_CODE_KEY);
+        boolean hasLegacyOpenKey = properties.containsKey(LEGACY_OPEN_BROWSER_KEY_CODE_KEY);
+        int captureHotkeyKeyCode = parseInt(properties.getProperty(CAPTURE_HOTKEY_KEY_CODE_KEY), defaults.getCaptureHotkeyKeyCode());
+        int legacyOpenKeyCode = parseInt(properties.getProperty(LEGACY_OPEN_BROWSER_KEY_CODE_KEY), defaults.getCaptureHotkeyKeyCode());
+        return buildConfig(escActionName,
+            chooseCaptureHotkeyKeyCode(captureHotkeyKeyCode, hasCaptureHotkeyKey, legacyOpenKeyCode, hasLegacyOpenKey, defaults),
+            defaults);
     }
 
     private static void saveWithProperties(File file, BrowserConfig config) {
@@ -123,7 +137,7 @@ public final class BrowserConfigLoader {
 
         Properties properties = new Properties();
         properties.setProperty(ESC_ACTION_KEY, config.getEscAction().name());
-        properties.setProperty(OPEN_BROWSER_KEY_CODE_KEY, Integer.toString(config.getOpenBrowserKeyCode()));
+        properties.setProperty(CAPTURE_HOTKEY_KEY_CODE_KEY, Integer.toString(config.getCaptureHotkeyKeyCode()));
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
             properties.store(writer, "GUI Browser config");
@@ -132,7 +146,7 @@ public final class BrowserConfigLoader {
         }
     }
 
-    private static BrowserConfig buildConfig(String escActionName, int openBrowserKeyCode, BrowserConfig defaults) {
+    private static BrowserConfig buildConfig(String escActionName, int captureHotkeyKeyCode, BrowserConfig defaults) {
         EscAction escAction;
         try {
             escAction = EscAction.valueOf(escActionName.trim().toUpperCase());
@@ -140,14 +154,29 @@ public final class BrowserConfigLoader {
             LOGGER.warning("Invalid escAction '" + escActionName + "' in browser config. Using default " + defaults.getEscAction() + ".");
             escAction = defaults.getEscAction();
         }
-        int sanitizedKeyCode = openBrowserKeyCode > 0 ? openBrowserKeyCode : defaults.getOpenBrowserKeyCode();
-        if (sanitizedKeyCode != openBrowserKeyCode) {
-            LOGGER.warning("Invalid openBrowserKeyCode '" + openBrowserKeyCode + "' in browser config. Using default " + defaults.getOpenBrowserKeyCode() + ".");
+        int sanitizedKeyCode = captureHotkeyKeyCode > 0 ? captureHotkeyKeyCode : defaults.getCaptureHotkeyKeyCode();
+        if (sanitizedKeyCode != captureHotkeyKeyCode) {
+            LOGGER.warning("Invalid captureHotkeyKeyCode '" + captureHotkeyKeyCode + "' in browser config. Using default " + defaults.getCaptureHotkeyKeyCode() + ".");
         }
         return new BrowserConfig(escAction, sanitizedKeyCode);
     }
 
+    private static int chooseCaptureHotkeyKeyCode(int captureHotkeyKeyCode, boolean hasCaptureHotkeyKey,
+                                                   int legacyOpenKeyCode, boolean hasLegacyOpenKey,
+                                                   BrowserConfig defaults) {
+        if (hasCaptureHotkeyKey) {
+            return captureHotkeyKeyCode;
+        }
+        if (hasLegacyOpenKey) {
+            return legacyOpenKeyCode;
+        }
+        return defaults.getCaptureHotkeyKeyCode();
+    }
+
     private static int parseInt(String value, int defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
         try {
             return Integer.parseInt(value.trim());
         } catch (RuntimeException e) {
@@ -177,6 +206,11 @@ public final class BrowserConfigLoader {
 
     private static boolean hasChanged(Class<?> type, Object instance) throws ReflectiveOperationException {
         return (Boolean) invoke(type, instance, "hasChanged");
+    }
+
+    private static boolean hasKey(Class<?> type, Object instance, String category, String key) throws ReflectiveOperationException {
+        Method method = type.getMethod("hasKey", String.class, String.class);
+        return (Boolean) method.invoke(instance, category, key);
     }
 
     private static void invokeCategorySet(Class<?> type, Object instance, String category, String key, Object value) throws ReflectiveOperationException {

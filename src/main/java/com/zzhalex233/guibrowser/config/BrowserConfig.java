@@ -6,11 +6,11 @@ import java.util.Objects;
 
 public final class BrowserConfig {
     private final EscAction escAction;
-    private final int openBrowserKeyCode;
+    private final int captureHotkeyKeyCode;
 
-    public BrowserConfig(EscAction escAction, int openBrowserKeyCode) {
+    public BrowserConfig(EscAction escAction, int captureHotkeyKeyCode) {
         this.escAction = Objects.requireNonNull(escAction, "escAction");
-        this.openBrowserKeyCode = openBrowserKeyCode;
+        this.captureHotkeyKeyCode = captureHotkeyKeyCode;
     }
 
     public static BrowserConfig defaults() {
@@ -21,7 +21,15 @@ public final class BrowserConfig {
         return escAction;
     }
 
+    public int getCaptureHotkeyKeyCode() {
+        return captureHotkeyKeyCode;
+    }
+
     public int getOpenBrowserKeyCode() {
-        return openBrowserKeyCode;
+        return captureHotkeyKeyCode;
+    }
+
+    public BrowserConfig withEscAction(EscAction escAction) {
+        return new BrowserConfig(escAction, captureHotkeyKeyCode);
     }
 }
