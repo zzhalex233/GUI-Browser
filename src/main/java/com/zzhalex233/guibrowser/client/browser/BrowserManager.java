@@ -14,6 +14,7 @@ public final class BrowserManager {
     private String activeTabTitle;
     private Object lastMinimizedHostedContent;
     private String lastMinimizedTabTitle;
+    private BrowserCaptureRequest captureRequest;
 
     private BrowserManager(BrowserConfig config) {
         this.config = Objects.requireNonNull(config, "config");
@@ -110,6 +111,7 @@ public final class BrowserManager {
         activeTabTitle = null;
         lastMinimizedHostedContent = null;
         lastMinimizedTabTitle = null;
+        captureRequest = null;
         state = BrowserState.CLOSED;
         windowState.endDrag();
     }
@@ -134,5 +136,8 @@ public final class BrowserManager {
         }
         String trimmed = tabTitle.trim();
         return trimmed.isEmpty() ? "GUI" : trimmed;
+    }
+
+    private static final class BrowserCaptureRequest {
     }
 }

@@ -4,10 +4,13 @@ import com.zzhalex233.guibrowser.config.BrowserConfig;
 import com.zzhalex233.guibrowser.config.EscAction;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class BrowserManagerTest {
 
@@ -129,14 +132,27 @@ class BrowserManagerTest {
     }
 
     @Test
-    void closeBrowserClearsHostedContentAndRestoreData() {
+    void closeBrowserClearsHostedContentAndRestoreData() throws ReflectiveOperationException {
         BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        Object hosted = new Object();
 
-        manager.captureHostedContent(new Object(), "Chest");
+        manager.captureHostedContent(hosted, "Chest");
         manager.minimizeBrowser();
         manager.closeBrowser();
+        manager.restoreBrowser();
 
         assertEquals(BrowserState.CLOSED, manager.getState());
         assertFalse(manager.hasHostedContent());
+        assertSame(null, readField(manager, "lastMinimizedHostedContent"));
+        assertSame(null, readField(manager, "lastMinimizedTabTitle"));
+        assertSame(null, readField(manager, "captureRequest"));
+        assertFalse(manager.getState() == BrowserState.OPEN_WITH_TABS);
+        assertFalse(manager.getHostedContent() == hosted);
+    }
+
+    private static Object readField(BrowserManager manager, String fieldName) throws ReflectiveOperationException {
+        Field field = BrowserManager.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(manager);
     }
 }
