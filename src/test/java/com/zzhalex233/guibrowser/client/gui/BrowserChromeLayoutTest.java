@@ -9,28 +9,45 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BrowserChromeLayoutTest {
 
     @Test
-    void titleBarContainsPointInsideWindow() {
-        BrowserWindowState window = new BrowserWindowState(40, 30, 360, 240);
+    void frameMatchesBrowserPngSize() {
+        BrowserWindowState window = BrowserWindowState.defaultWindow();
+        BrowserChromeLayout.Rect frame = BrowserChromeLayout.frame(window);
 
-        assertTrue(BrowserChromeLayout.titleBar(window).contains(60, 40));
+        assertEquals(176, frame.getWidth());
+        assertEquals(190, frame.getHeight());
     }
 
     @Test
-    void contentAreaStaysBelowTabStrip() {
-        BrowserWindowState window = new BrowserWindowState(40, 30, 360, 240);
+    void contentAreaMatchesBrowserPngPageRegion() {
+        BrowserWindowState window = BrowserWindowState.defaultWindow();
+        BrowserChromeLayout.Rect content = BrowserChromeLayout.contentArea(window);
 
-        assertTrue(BrowserChromeLayout.contentArea(window).getY()
-            > BrowserChromeLayout.tabStrip(window).getBottom());
+        assertEquals(window.getX(), content.getX());
+        assertEquals(window.getY() + 24, content.getY());
+        assertEquals(176, content.getWidth());
+        assertEquals(166, content.getHeight());
     }
 
     @Test
-    void closeButtonStaysInsideTitleBar() {
-        BrowserWindowState window = new BrowserWindowState(40, 30, 360, 240);
+    void firstTabAnchorsToBrowserLocalBottomLeftAtY27() {
+        BrowserWindowState window = BrowserWindowState.defaultWindow();
+        BrowserChromeLayout.Rect tab = BrowserChromeLayout.tab(window, 0);
 
-        BrowserChromeLayout.Rect titleBar = BrowserChromeLayout.titleBar(window);
-        BrowserChromeLayout.Rect closeButton = BrowserChromeLayout.closeButton(window);
+        assertEquals(window.getX(), tab.getX());
+        assertEquals(window.getY() + 4, tab.getY());
+        assertEquals(28, tab.getWidth());
+        assertEquals(23, tab.getHeight());
+    }
 
-        assertTrue(titleBar.contains(closeButton.getX(), closeButton.getY()));
-        assertEquals(titleBar.getY() + 4, closeButton.getY());
+    @Test
+    void topRightButtonsStayContiguous() {
+        BrowserWindowState window = BrowserWindowState.defaultWindow();
+        BrowserChromeLayout.Rect minimize = BrowserChromeLayout.minimizeButton(window);
+        BrowserChromeLayout.Rect close = BrowserChromeLayout.closeButton(window);
+
+        assertEquals(window.getX() + 148, minimize.getX());
+        assertEquals(window.getY() + 13, minimize.getY());
+        assertEquals(minimize.getRight(), close.getX());
+        assertTrue(close.getRight() <= BrowserChromeLayout.frame(window).getRight());
     }
 }

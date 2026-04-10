@@ -1,10 +1,12 @@
 package com.zzhalex233.guibrowser.client.browser;
 
+import com.zzhalex233.guibrowser.client.gui.BrowserChromeTexture;
+
 public final class BrowserWindowState {
     private static final int DEFAULT_X = 40;
     private static final int DEFAULT_Y = 30;
-    private static final int DEFAULT_WIDTH = 360;
-    private static final int DEFAULT_HEIGHT = 240;
+    private static final int DEFAULT_WIDTH = BrowserChromeTexture.FRAME_WIDTH;
+    private static final int DEFAULT_HEIGHT = BrowserChromeTexture.FRAME_HEIGHT;
 
     private int x;
     private int y;
