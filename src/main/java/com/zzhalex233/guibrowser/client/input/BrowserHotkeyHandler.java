@@ -13,7 +13,12 @@ public class BrowserHotkeyHandler {
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || BrowserKeybinds.OPEN_BROWSER == null) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+
+        controller.flushDeferredUiActions();
+        if (BrowserKeybinds.OPEN_BROWSER == null) {
             return;
         }
 

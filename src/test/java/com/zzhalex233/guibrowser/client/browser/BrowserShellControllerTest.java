@@ -34,6 +34,7 @@ class BrowserShellControllerTest {
 
         assertEquals(BrowserState.CLOSED, manager.getState());
         assertEquals(0, host.openBrowserRootRequests);
+        assertEquals(1, host.prepareToCloseBrowserRequests);
         assertEquals(1, host.closeCurrentScreenRequests);
         assertFalse(host.browserRootActive);
     }
@@ -48,6 +49,7 @@ class BrowserShellControllerTest {
         controller.handleEscFromRoot();
 
         assertEquals(BrowserState.CLOSED, manager.getState());
+        assertEquals(1, host.prepareToCloseBrowserRequests);
         assertEquals(1, host.closeCurrentScreenRequests);
         assertFalse(host.browserRootActive);
     }
@@ -62,14 +64,82 @@ class BrowserShellControllerTest {
         controller.handleChromeCloseOrMinimize();
 
         assertEquals(BrowserState.CLOSED, manager.getState());
+        assertEquals(1, host.prepareToCloseBrowserRequests);
         assertEquals(1, host.closeCurrentScreenRequests);
         assertFalse(host.browserRootActive);
+    }
+
+    @Test
+    void commandOpenQueuesBrowserRootUntilFlush() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        FakeHost host = new FakeHost(true, false);
+        BrowserShellController controller = new BrowserShellController(manager, host);
+
+        assertTrue(controller.requestBrowserOpenFromCommand());
+        assertEquals(BrowserState.OPEN_EMPTY, manager.getState());
+        assertEquals(0, host.openBrowserRootRequests);
+        assertFalse(host.browserRootActive);
+
+        controller.flushDeferredUiActions();
+
+        assertEquals(1, host.openBrowserRootRequests);
+        assertTrue(host.browserRootActive);
+    }
+
+    @Test
+    void commandOpenRestoresMinimizedBrowserInsteadOfOpeningEmpty() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        FakeHost host = new FakeHost(true, false);
+        BrowserShellController controller = new BrowserShellController(manager, host);
+
+        manager.captureHostedContent(new Object(), "Chest");
+        manager.minimizeBrowser();
+
+        assertTrue(controller.requestBrowserOpenFromCommand());
+        controller.flushDeferredUiActions();
+
+        assertEquals(BrowserState.OPEN_WITH_TABS, manager.getState());
+        assertTrue(manager.hasHostedContent());
+        assertEquals(1, host.openBrowserRootRequests);
+        assertTrue(host.browserRootActive);
+    }
+
+    @Test
+    void externalCloseSignalDoesNotCancelDeferredCommandOpen() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        FakeHost host = new FakeHost(true, false);
+        BrowserShellController controller = new BrowserShellController(manager, host);
+
+        assertTrue(controller.requestBrowserOpenFromCommand());
+
+        controller.handleExternalCloseSignal();
+        controller.flushDeferredUiActions();
+
+        assertEquals(BrowserState.OPEN_EMPTY, manager.getState());
+        assertEquals(1, host.openBrowserRootRequests);
+        assertTrue(host.browserRootActive);
+    }
+
+    @Test
+    void externalCloseSignalDoesNotCloseActiveBrowserRoot() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        manager.openEmptyBrowser();
+        FakeHost host = new FakeHost(true, true);
+        BrowserShellController controller = new BrowserShellController(manager, host);
+
+        controller.handleExternalCloseSignal();
+
+        assertEquals(BrowserState.OPEN_EMPTY, manager.getState());
+        assertEquals(0, host.prepareToCloseBrowserRequests);
+        assertEquals(0, host.closeCurrentScreenRequests);
+        assertTrue(host.browserRootActive);
     }
 
     private static final class FakeHost implements BrowserShellHost {
         private final boolean inWorld;
         private boolean browserRootActive;
         private int openBrowserRootRequests;
+        private int prepareToCloseBrowserRequests;
         private int closeCurrentScreenRequests;
 
         private FakeHost(boolean inWorld, boolean browserRootActive) {
@@ -91,6 +161,11 @@ class BrowserShellControllerTest {
         public void showBrowserRoot(BrowserShellController controller) {
             openBrowserRootRequests++;
             browserRootActive = true;
+        }
+
+        @Override
+        public void prepareToCloseBrowser(BrowserShellController controller) {
+            prepareToCloseBrowserRequests++;
         }
 
         @Override

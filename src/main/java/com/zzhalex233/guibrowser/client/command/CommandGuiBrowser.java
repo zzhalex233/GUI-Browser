@@ -53,7 +53,7 @@ public class CommandGuiBrowser extends CommandBase {
 
         switch (subcommand) {
             case "open":
-                if (controller.openBrowser()) {
+                if (controller.requestBrowserOpenFromCommand()) {
                     sender.sendMessage(new TextComponentString("GUI Browser opened."));
                 } else {
                     sender.sendMessage(new TextComponentString("GUI Browser can only be used while in-world."));
