@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BrowserManagerTest {
@@ -84,5 +85,58 @@ class BrowserManagerTest {
 
         assertEquals(0, window.getX());
         assertEquals(0, window.getY());
+    }
+
+    @Test
+    void captureHostedContentTransitionsToOpenWithTabsAndStoresReference() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        Object hostedContent = new Object();
+
+        manager.captureHostedContent(hostedContent, "Chest");
+
+        assertEquals(BrowserState.OPEN_WITH_TABS, manager.getState());
+        assertTrue(manager.hasHostedContent());
+        assertSame(hostedContent, manager.getHostedContent());
+        assertEquals("Chest", manager.getActiveTabTitle());
+    }
+
+    @Test
+    void clearHostedContentReturnsToOpenEmptyState() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        manager.captureHostedContent(new Object(), "Chest");
+
+        manager.clearHostedContent();
+
+        assertEquals(BrowserState.OPEN_EMPTY, manager.getState());
+        assertFalse(manager.hasHostedContent());
+    }
+
+    @Test
+    void minimizePreservesHostedContentForRestore() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+        Object hosted = new Object();
+
+        manager.captureHostedContent(hosted, "Chest");
+        manager.minimizeBrowser();
+
+        assertEquals(BrowserState.MINIMIZED_WITH_TABS, manager.getState());
+        assertSame(hosted, manager.getHostedContent());
+
+        manager.restoreBrowser();
+
+        assertEquals(BrowserState.OPEN_WITH_TABS, manager.getState());
+        assertSame(hosted, manager.getHostedContent());
+    }
+
+    @Test
+    void closeBrowserClearsHostedContentAndRestoreData() {
+        BrowserManager manager = BrowserManager.createForTests(BrowserConfig.defaults());
+
+        manager.captureHostedContent(new Object(), "Chest");
+        manager.minimizeBrowser();
+        manager.closeBrowser();
+
+        assertEquals(BrowserState.CLOSED, manager.getState());
+        assertFalse(manager.hasHostedContent());
     }
 }
