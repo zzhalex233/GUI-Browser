@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class GuiBrowserRuntimeTest {
 
@@ -24,5 +25,12 @@ class GuiBrowserRuntimeTest {
         assertSame(runtime, GuiBrowserRuntime.getInstance());
         assertEquals(config, runtime.getConfig());
         assertEquals(65, runtime.getConfig().getCaptureHotkeyKeyCode());
+    }
+
+    @Test
+    void getInstanceWithoutInitializeThrows() {
+        IllegalStateException error = assertThrows(IllegalStateException.class, GuiBrowserRuntime::getInstance);
+
+        assertEquals("GuiBrowserRuntime has not been initialized.", error.getMessage());
     }
 }
