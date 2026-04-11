@@ -55,6 +55,11 @@ public final class GuiSession {
         this.lastActivatedAt = now;
     }
 
+    void markHidden() {
+        this.foreground = false;
+        this.hidden = true;
+    }
+
     void clearForeground() {
         this.foreground = false;
     }
