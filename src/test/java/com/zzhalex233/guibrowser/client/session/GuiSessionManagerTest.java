@@ -1,5 +1,6 @@
 package com.zzhalex233.guibrowser.client.session;
 
+import net.minecraft.client.gui.GuiScreen;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -11,9 +12,10 @@ class GuiSessionManagerTest {
     @Test
     void registerForegroundSessionCreatesLiveTabForOriginalGuiInstance() {
         GuiSessionManager manager = new GuiSessionManager();
-        Object gui = new Object();
+        GuiScreen gui = new GuiScreen() {
+        };
 
-        GuiSession session = manager.registerOpenedSession(gui, "Chat");
+        GuiSession session = manager.registerOpenedSession(gui, "Chest");
 
         assertSame(gui, session.getScreen());
         assertTrue(session.isForeground());

@@ -1,17 +1,19 @@
 package com.zzhalex233.guibrowser.client.session;
 
+import net.minecraft.client.gui.GuiScreen;
+
 import java.util.Objects;
 
 public final class GuiSession {
     private final GuiSessionId id;
-    private final Object screen;
+    private final GuiScreen screen;
     private final String title;
     private final long createdAt;
     private long lastActivatedAt;
     private boolean foreground;
     private boolean hidden;
 
-    GuiSession(GuiSessionId id, Object screen, String title, long createdAt) {
+    GuiSession(GuiSessionId id, GuiScreen screen, String title, long createdAt) {
         this.id = Objects.requireNonNull(id, "id");
         this.screen = Objects.requireNonNull(screen, "screen");
         this.title = Objects.requireNonNull(title, "title");
@@ -25,7 +27,7 @@ public final class GuiSession {
         return id;
     }
 
-    public Object getScreen() {
+    public GuiScreen getScreen() {
         return screen;
     }
 
@@ -53,11 +55,6 @@ public final class GuiSession {
         this.foreground = true;
         this.hidden = false;
         this.lastActivatedAt = now;
-    }
-
-    void markHidden() {
-        this.foreground = false;
-        this.hidden = true;
     }
 
     void clearForeground() {

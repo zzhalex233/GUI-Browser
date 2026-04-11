@@ -20,12 +20,12 @@ public final class GuiBrowserRuntime {
 
     public static GuiBrowserRuntime getInstance() {
         if (instance == null) {
-            throw new IllegalStateException("GuiBrowserRuntime has not been initialized.");
+            instance = new GuiBrowserRuntime(BrowserConfig.defaults());
         }
         return instance;
     }
 
-    static void resetForTests() {
+    public static void resetForTests() {
         instance = null;
     }
 
