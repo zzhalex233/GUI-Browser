@@ -7,9 +7,18 @@ public final class GuiSessionTitleResolver {
     }
 
     public static String resolve(GuiScreen screen, String explicitTitle) {
-        if (explicitTitle != null && !explicitTitle.trim().isEmpty()) {
-            return explicitTitle.trim();
+        if (explicitTitle != null) {
+            String trimmedTitle = explicitTitle.trim();
+            if (!trimmedTitle.isEmpty()) {
+                return trimmedTitle;
+            }
         }
-        return screen == null ? "GUI" : screen.getClass().getSimpleName();
+        if (screen != null) {
+            String simpleName = screen.getClass().getSimpleName();
+            if (simpleName != null && !simpleName.trim().isEmpty()) {
+                return simpleName.trim();
+            }
+        }
+        return "GUI";
     }
 }

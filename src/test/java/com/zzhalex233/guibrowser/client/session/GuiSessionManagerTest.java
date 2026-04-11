@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiScreen;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,5 +22,13 @@ class GuiSessionManagerTest {
         assertTrue(session.isForeground());
         assertFalse(session.isHidden());
         assertSame(session, manager.getForegroundSession());
+    }
+
+    @Test
+    void resolveFallsBackToGuiForBlankTitleAndAnonymousScreen() {
+        GuiScreen gui = new GuiScreen() {
+        };
+
+        assertEquals("GUI", GuiSessionTitleResolver.resolve(gui, "   "));
     }
 }
