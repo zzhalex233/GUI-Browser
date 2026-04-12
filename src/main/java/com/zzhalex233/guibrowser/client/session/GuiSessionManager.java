@@ -2,6 +2,9 @@ package com.zzhalex233.guibrowser.client.session;
 
 import net.minecraft.client.gui.GuiScreen;
 
+import com.zzhalex233.guibrowser.client.history.GuiHistoryEntry;
+import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,8 +12,17 @@ import java.util.Objects;
 
 public final class GuiSessionManager {
     private final LinkedHashMap<GuiSessionId, GuiSession> sessions = new LinkedHashMap<>();
+    private final GuiHistoryStore historyStore;
     private GuiSessionId foregroundSessionId;
     private GuiSessionId lastActivatedSessionId;
+
+    public GuiSessionManager() {
+        this(null);
+    }
+
+    public GuiSessionManager(GuiHistoryStore historyStore) {
+        this.historyStore = historyStore;
+    }
 
     public GuiSession registerOpenedSession(GuiScreen screen, String title) {
         Objects.requireNonNull(screen, "screen");
@@ -24,6 +36,7 @@ public final class GuiSessionManager {
         sessions.put(session.getId(), session);
         foregroundSessionId = session.getId();
         lastActivatedSessionId = session.getId();
+        recordHistory(session.getTitle(), GuiHistoryEntry.Action.OPENED);
         return session;
     }
 
@@ -62,6 +75,7 @@ public final class GuiSessionManager {
         if (id.equals(foregroundSessionId)) {
             foregroundSessionId = null;
         }
+        recordHistory(session.getTitle(), GuiHistoryEntry.Action.HIDDEN);
     }
 
     public void activateSession(GuiSessionId id) {
@@ -74,6 +88,7 @@ public final class GuiSessionManager {
         session.markForeground(now);
         foregroundSessionId = id;
         lastActivatedSessionId = id;
+        recordHistory(session.getTitle(), GuiHistoryEntry.Action.ACTIVATED);
     }
 
     public void destroySession(GuiSessionId id) {
@@ -87,6 +102,7 @@ public final class GuiSessionManager {
         if (id.equals(lastActivatedSessionId)) {
             lastActivatedSessionId = findMostRecentlyActivatedSessionId();
         }
+        recordHistory(removed.getTitle(), GuiHistoryEntry.Action.DESTROYED);
     }
 
     public List<GuiSession> listVisibleTabs() {
@@ -104,6 +120,7 @@ public final class GuiSessionManager {
     }
 
     public void clearForWorldUnload() {
+        recordHistory("*", GuiHistoryEntry.Action.CLEARED_ON_UNLOAD);
         sessions.clear();
         foregroundSessionId = null;
         lastActivatedSessionId = null;
@@ -128,5 +145,11 @@ public final class GuiSessionManager {
             throw new IllegalArgumentException("Unknown session id: " + id);
         }
         return session;
+    }
+
+    private void recordHistory(String title, GuiHistoryEntry.Action action) {
+        if (historyStore != null) {
+            historyStore.record(title, action);
+        }
     }
 }
