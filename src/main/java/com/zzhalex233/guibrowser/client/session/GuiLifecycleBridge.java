@@ -6,16 +6,10 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 public final class GuiLifecycleBridge {
-    private static final GuiLifecycleBridge INSTANCE = new GuiLifecycleBridge(new GuiSessionManager());
-
     private final GuiSessionManager manager;
 
     public GuiLifecycleBridge(GuiSessionManager manager) {
         this.manager = Objects.requireNonNull(manager, "manager");
-    }
-
-    public static GuiLifecycleBridge getInstance() {
-        return INSTANCE;
     }
 
     public TransitionDecision onBeforeDisplay(@Nullable GuiScreen current, @Nullable GuiScreen incoming, boolean explicitDestroy) {

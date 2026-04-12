@@ -30,6 +30,20 @@ class GuiLifecycleBridgeTest {
     }
 
     @Test
+    void explicitDestroyRemovesCurrentSessionInsteadOfHidingIt() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
+        GuiScreen current = new GuiChat();
+        GuiSession session = manager.registerOpenedSession(current, "Chat");
+
+        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(current, null, true);
+
+        assertFalse(decision.shouldSuppressCurrentClose());
+        assertNull(decision.getHiddenSessionId());
+        assertNull(manager.findSession(session.getId()));
+    }
+
+    @Test
     void openingNewTrackedScreenKeepsPreviousSessionCached() {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
