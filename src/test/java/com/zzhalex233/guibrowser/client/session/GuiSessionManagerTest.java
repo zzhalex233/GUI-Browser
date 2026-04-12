@@ -45,6 +45,7 @@ class GuiSessionManagerTest {
 
         assertTrue(manager.getSession(session.getId()).isHidden());
         assertSame(gui, manager.getSession(session.getId()).getScreen());
+        assertEquals(session.getId(), manager.getLastActivatedSessionId());
     }
 
     @Test
@@ -118,5 +119,20 @@ class GuiSessionManagerTest {
 
         assertNull(manager.getForegroundSession());
         assertNull(manager.getLastActivatedSessionId());
+    }
+
+    @Test
+    void destroyingLastActivatedSessionFallsBackToMostRecentlyActivatedRemainingSession() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiSession first = manager.registerOpenedSession(new GuiScreen() {
+        }, "First");
+        GuiSession second = manager.registerOpenedSession(new GuiScreen() {
+        }, "Second");
+
+        manager.activateSession(first.getId());
+        manager.destroySession(first.getId());
+
+        assertNull(manager.getForegroundSession());
+        assertEquals(second.getId(), manager.getLastActivatedSessionId());
     }
 }

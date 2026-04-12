@@ -76,7 +76,7 @@ public final class GuiSessionManager {
             foregroundSessionId = null;
         }
         if (id.equals(lastActivatedSessionId)) {
-            lastActivatedSessionId = foregroundSessionId;
+            lastActivatedSessionId = findMostRecentlyActivatedSessionId();
         }
     }
 
@@ -94,6 +94,19 @@ public final class GuiSessionManager {
         sessions.clear();
         foregroundSessionId = null;
         lastActivatedSessionId = null;
+    }
+
+    private GuiSessionId findMostRecentlyActivatedSessionId() {
+        GuiSessionId mostRecentlyActivatedSessionId = null;
+        long mostRecentActivation = Long.MIN_VALUE;
+        for (GuiSession session : sessions.values()) {
+            long lastActivatedAt = session.getLastActivatedAt();
+            if (mostRecentlyActivatedSessionId == null || lastActivatedAt >= mostRecentActivation) {
+                mostRecentActivation = lastActivatedAt;
+                mostRecentlyActivatedSessionId = session.getId();
+            }
+        }
+        return mostRecentlyActivatedSessionId;
     }
 
     private GuiSession requireSession(GuiSessionId id) {
