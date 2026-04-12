@@ -43,6 +43,15 @@ public final class GuiSessionManager {
         return sessions.get(id);
     }
 
+    public GuiSession findSessionByScreen(GuiScreen screen) {
+        for (GuiSession session : sessions.values()) {
+            if (session.getScreen() == screen) {
+                return session;
+            }
+        }
+        return null;
+    }
+
     public GuiSessionId getLastActivatedSessionId() {
         return lastActivatedSessionId;
     }
@@ -88,6 +97,10 @@ public final class GuiSessionManager {
             }
         }
         return visible;
+    }
+
+    public List<GuiSession> listAllSessions() {
+        return new ArrayList<>(sessions.values());
     }
 
     public void clearForWorldUnload() {

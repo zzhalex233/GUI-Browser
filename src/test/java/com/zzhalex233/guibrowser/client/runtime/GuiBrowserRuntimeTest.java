@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class GuiBrowserRuntimeTest {
@@ -24,5 +25,7 @@ class GuiBrowserRuntimeTest {
         assertSame(runtime, GuiBrowserRuntime.getInstance());
         assertEquals(config, runtime.getConfig());
         assertEquals(65, runtime.getConfig().getCaptureHotkeyKeyCode());
+        assertNotNull(runtime.getSessionManager());
+        assertNotNull(runtime.getLifecycleBridge());
     }
 }

@@ -1,5 +1,7 @@
 package com.zzhalex233.guibrowser.client.runtime;
 
+import com.zzhalex233.guibrowser.client.session.GuiLifecycleBridge;
+import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
 import com.zzhalex233.guibrowser.config.BrowserConfig;
 
 import java.util.Objects;
@@ -8,9 +10,13 @@ public final class GuiBrowserRuntime {
     private static GuiBrowserRuntime instance;
 
     private final BrowserConfig config;
+    private final GuiSessionManager sessionManager;
+    private final GuiLifecycleBridge lifecycleBridge;
 
     private GuiBrowserRuntime(BrowserConfig config) {
         this.config = Objects.requireNonNull(config, "config");
+        this.sessionManager = new GuiSessionManager();
+        this.lifecycleBridge = new GuiLifecycleBridge(sessionManager);
     }
 
     public static GuiBrowserRuntime initialize(BrowserConfig config) {
@@ -31,5 +37,13 @@ public final class GuiBrowserRuntime {
 
     public BrowserConfig getConfig() {
         return config;
+    }
+
+    public GuiSessionManager getSessionManager() {
+        return sessionManager;
+    }
+
+    public GuiLifecycleBridge getLifecycleBridge() {
+        return lifecycleBridge;
     }
 }

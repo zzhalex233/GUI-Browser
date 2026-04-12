@@ -4,6 +4,8 @@
   "package": "com.zzhalex233.guibrowser.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [],
-  "client": [],
+  "client": [
+    "MixinMinecraft"
+  ],
   "server": []
 }
