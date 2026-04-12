@@ -11,7 +11,9 @@ public final class GuiTrackingPolicy {
         "net.minecraft.client.gui.GuiWorldSelection",
         "net.minecraft.client.gui.GuiDisconnected",
         "net.minecraft.client.gui.GuiDownloadTerrain",
+        "net.minecraft.client.gui.GuiErrorScreen",
         "net.minecraft.client.gui.GuiGameOver",
+        "net.minecraft.client.gui.GuiMemoryErrorScreen",
         "net.minecraft.client.gui.GuiScreenWorking",
         "net.minecraft.client.multiplayer.GuiConnecting"
     );
