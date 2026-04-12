@@ -60,4 +60,9 @@ public final class GuiSession {
     void clearForeground() {
         this.foreground = false;
     }
+
+    void markHidden() {
+        this.hidden = true;
+        this.foreground = false;
+    }
 }

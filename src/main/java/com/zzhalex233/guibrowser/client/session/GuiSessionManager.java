@@ -2,24 +2,94 @@ package com.zzhalex233.guibrowser.client.session;
 
 import net.minecraft.client.gui.GuiScreen;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Objects;
 
 public final class GuiSessionManager {
-    private GuiSession foregroundSession;
+    private final LinkedHashMap<GuiSessionId, GuiSession> sessions = new LinkedHashMap<>();
+    private GuiSessionId foregroundSessionId;
 
     public GuiSession registerOpenedSession(GuiScreen screen, String title) {
         Objects.requireNonNull(screen, "screen");
         long now = System.currentTimeMillis();
-        if (foregroundSession != null) {
-            foregroundSession.clearForeground();
+        GuiSession previousForeground = getForegroundSession();
+        if (previousForeground != null) {
+            previousForeground.clearForeground();
         }
         GuiSession session = new GuiSession(GuiSessionId.create(), screen, GuiSessionTitleResolver.resolve(screen, title), now);
         session.markForeground(now);
-        foregroundSession = session;
+        sessions.put(session.getId(), session);
+        foregroundSessionId = session.getId();
         return session;
     }
 
     public GuiSession getForegroundSession() {
-        return foregroundSession;
+        return foregroundSessionId == null ? null : sessions.get(foregroundSessionId);
+    }
+
+    public GuiSession getSession(GuiSessionId id) {
+        GuiSession session = sessions.get(id);
+        if (session == null) {
+            throw new IllegalArgumentException("Unknown session id: " + id);
+        }
+        return session;
+    }
+
+    public GuiSession findSession(GuiSessionId id) {
+        return sessions.get(id);
+    }
+
+    public void hideSession(GuiSessionId id) {
+        GuiSession session = requireSession(id);
+        session.markHidden();
+        if (id.equals(foregroundSessionId)) {
+            foregroundSessionId = null;
+        }
+    }
+
+    public void activateSession(GuiSessionId id) {
+        GuiSession session = requireSession(id);
+        long now = System.currentTimeMillis();
+        GuiSession currentForeground = getForegroundSession();
+        if (currentForeground != null && !currentForeground.getId().equals(id)) {
+            currentForeground.clearForeground();
+        }
+        session.markForeground(now);
+        foregroundSessionId = id;
+    }
+
+    public void destroySession(GuiSessionId id) {
+        GuiSession removed = sessions.remove(id);
+        if (removed == null) {
+            return;
+        }
+        if (id.equals(foregroundSessionId)) {
+            foregroundSessionId = null;
+        }
+    }
+
+    public List<GuiSession> listVisibleTabs() {
+        List<GuiSession> visible = new ArrayList<>();
+        for (GuiSession session : sessions.values()) {
+            if (!session.isHidden()) {
+                visible.add(session);
+            }
+        }
+        return visible;
+    }
+
+    public void clearForWorldUnload() {
+        sessions.clear();
+        foregroundSessionId = null;
+    }
+
+    private GuiSession requireSession(GuiSessionId id) {
+        GuiSession session = sessions.get(id);
+        if (session == null) {
+            throw new IllegalArgumentException("Unknown session id: " + id);
+        }
+        return session;
     }
 }
