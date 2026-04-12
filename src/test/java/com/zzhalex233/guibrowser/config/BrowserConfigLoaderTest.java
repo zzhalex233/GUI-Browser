@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class BrowserConfigLoaderTest {
 
@@ -51,5 +52,10 @@ class BrowserConfigLoaderTest {
         BrowserConfig loaded = BrowserConfigLoader.load(configFile.toFile());
 
         assertEquals(71, loaded.getCaptureHotkeyKeyCode());
+    }
+
+    @Test
+    void mixinConfigResourceExists() {
+        assertNotNull(getClass().getClassLoader().getResource("mixins.guibrowser.json"));
     }
 }
