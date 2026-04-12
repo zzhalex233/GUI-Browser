@@ -76,8 +76,14 @@ public abstract class MixinGuiScreen {
                 }
                 break;
             case BOOKMARK_BUTTON:
+                if (mouseButton == 0) {
+                    controller.handleBookmarkButtonClick();
+                }
                 break;
             case HISTORY_BUTTON:
+                if (mouseButton == 0) {
+                    controller.handleHistoryButtonClick();
+                }
                 break;
             default:
                 break;

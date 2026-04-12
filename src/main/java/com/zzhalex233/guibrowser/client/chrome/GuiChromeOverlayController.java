@@ -1,5 +1,6 @@
 package com.zzhalex233.guibrowser.client.chrome;
 
+import com.zzhalex233.guibrowser.client.history.GuiBookmarkStore;
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionId;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
@@ -9,6 +10,8 @@ import java.util.List;
 public final class GuiChromeOverlayController {
 
     private final GuiSessionManager sessionManager;
+    private boolean historyPanelOpen;
+    private boolean bookmarkPanelOpen;
 
     public GuiChromeOverlayController(GuiSessionManager sessionManager) {
         this.sessionManager = sessionManager;
@@ -28,6 +31,31 @@ public final class GuiChromeOverlayController {
 
     public void handleTabMiddleClick(GuiSessionId sessionId) {
         sessionManager.destroySession(sessionId);
+    }
+
+    public void handleBookmarkButtonClick() {
+        GuiSession foreground = sessionManager.getForegroundSession();
+        if (foreground != null) {
+            sessionManager.toggleBookmark(foreground.getId());
+        }
+    }
+
+    public void handleHistoryButtonClick() {
+        historyPanelOpen = !historyPanelOpen;
+        bookmarkPanelOpen = false;
+    }
+
+    public boolean isHistoryPanelOpen() {
+        return historyPanelOpen;
+    }
+
+    public boolean isBookmarkPanelOpen() {
+        return bookmarkPanelOpen;
+    }
+
+    public boolean isSessionBookmarked(GuiSessionId sessionId) {
+        GuiBookmarkStore store = sessionManager.getBookmarkStore();
+        return store != null && store.isBookmarked(sessionId);
     }
 
     public GuiChromeTarget resolveTarget(int mouseX, int mouseY, int screenWidth, int screenHeight) {

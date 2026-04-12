@@ -2,6 +2,7 @@ package com.zzhalex233.guibrowser.client.session;
 
 import net.minecraft.client.gui.GuiScreen;
 
+import com.zzhalex233.guibrowser.client.history.GuiBookmarkStore;
 import com.zzhalex233.guibrowser.client.history.GuiHistoryEntry;
 import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
 
@@ -13,15 +14,21 @@ import java.util.Objects;
 public final class GuiSessionManager {
     private final LinkedHashMap<GuiSessionId, GuiSession> sessions = new LinkedHashMap<>();
     private final GuiHistoryStore historyStore;
+    private final GuiBookmarkStore bookmarkStore;
     private GuiSessionId foregroundSessionId;
     private GuiSessionId lastActivatedSessionId;
 
     public GuiSessionManager() {
-        this(null);
+        this(null, null);
     }
 
     public GuiSessionManager(GuiHistoryStore historyStore) {
+        this(historyStore, null);
+    }
+
+    public GuiSessionManager(GuiHistoryStore historyStore, GuiBookmarkStore bookmarkStore) {
         this.historyStore = historyStore;
+        this.bookmarkStore = bookmarkStore;
     }
 
     public GuiSession registerOpenedSession(GuiScreen screen, String title) {
@@ -124,6 +131,25 @@ public final class GuiSessionManager {
         sessions.clear();
         foregroundSessionId = null;
         lastActivatedSessionId = null;
+        if (bookmarkStore != null) {
+            bookmarkStore.clear();
+        }
+    }
+
+    public void toggleBookmark(GuiSessionId id) {
+        if (bookmarkStore == null) {
+            return;
+        }
+        GuiSession session = requireSession(id);
+        bookmarkStore.toggleBookmark(id, session.getTitle(), session.getScreen().getClass().getName());
+    }
+
+    public GuiBookmarkStore getBookmarkStore() {
+        return bookmarkStore;
+    }
+
+    public GuiHistoryStore getHistoryStore() {
+        return historyStore;
     }
 
     private GuiSessionId findMostRecentlyActivatedSessionId() {
