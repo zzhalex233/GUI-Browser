@@ -10,6 +10,7 @@ import java.util.Objects;
 public final class GuiSessionManager {
     private final LinkedHashMap<GuiSessionId, GuiSession> sessions = new LinkedHashMap<>();
     private GuiSessionId foregroundSessionId;
+    private GuiSessionId lastActivatedSessionId;
 
     public GuiSession registerOpenedSession(GuiScreen screen, String title) {
         Objects.requireNonNull(screen, "screen");
@@ -22,6 +23,7 @@ public final class GuiSessionManager {
         session.markForeground(now);
         sessions.put(session.getId(), session);
         foregroundSessionId = session.getId();
+        lastActivatedSessionId = session.getId();
         return session;
     }
 
@@ -41,6 +43,10 @@ public final class GuiSessionManager {
         return sessions.get(id);
     }
 
+    public GuiSessionId getLastActivatedSessionId() {
+        return lastActivatedSessionId;
+    }
+
     public void hideSession(GuiSessionId id) {
         GuiSession session = requireSession(id);
         session.markHidden();
@@ -58,6 +64,7 @@ public final class GuiSessionManager {
         }
         session.markForeground(now);
         foregroundSessionId = id;
+        lastActivatedSessionId = id;
     }
 
     public void destroySession(GuiSessionId id) {
@@ -67,6 +74,9 @@ public final class GuiSessionManager {
         }
         if (id.equals(foregroundSessionId)) {
             foregroundSessionId = null;
+        }
+        if (id.equals(lastActivatedSessionId)) {
+            lastActivatedSessionId = foregroundSessionId;
         }
     }
 
@@ -83,6 +93,7 @@ public final class GuiSessionManager {
     public void clearForWorldUnload() {
         sessions.clear();
         foregroundSessionId = null;
+        lastActivatedSessionId = null;
     }
 
     private GuiSession requireSession(GuiSessionId id) {

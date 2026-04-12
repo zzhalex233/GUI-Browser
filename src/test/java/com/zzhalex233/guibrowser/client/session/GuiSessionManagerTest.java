@@ -23,6 +23,7 @@ class GuiSessionManagerTest {
         assertTrue(session.isForeground());
         assertFalse(session.isHidden());
         assertSame(session, manager.getForegroundSession());
+        assertEquals(session.getId(), manager.getLastActivatedSessionId());
     }
 
     @Test
@@ -72,6 +73,7 @@ class GuiSessionManagerTest {
         assertTrue(manager.getSession(first.getId()).isForeground());
         assertFalse(manager.getSession(first.getId()).isHidden());
         assertSame(first, manager.getForegroundSession());
+        assertEquals(first.getId(), manager.getLastActivatedSessionId());
     }
 
     @Test
@@ -101,7 +103,20 @@ class GuiSessionManagerTest {
         manager.clearForWorldUnload();
 
         assertNull(manager.getForegroundSession());
+        assertNull(manager.getLastActivatedSessionId());
         assertTrue(manager.listVisibleTabs().isEmpty());
         assertNull(manager.findSession(session.getId()));
+    }
+
+    @Test
+    void destroyingLastActivatedForegroundClearsTracking() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiSession second = manager.registerOpenedSession(new GuiScreen() {
+        }, "Second");
+
+        manager.destroySession(second.getId());
+
+        assertNull(manager.getForegroundSession());
+        assertNull(manager.getLastActivatedSessionId());
     }
 }
