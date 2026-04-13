@@ -50,6 +50,7 @@ public final class GuiSessionManager {
                 if (existing != null) {
                     activateSession(existingId);
                     existing.updateScreen(screen);
+                    existing.clearStale();
                     return existing;
                 }
                 sourceIndex.remove(source);
