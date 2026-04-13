@@ -1,42 +1,150 @@
 package com.zzhalex233.guibrowser.client.session;
 
-import net.minecraft.client.gui.GuiMainMenu;
-import net.minecraft.client.gui.GuiScreen;
+import com.zzhalex233.guibrowser.config.ContainerCacheMode;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.util.math.BlockPos;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GuiLifecycleBridgeTest {
 
+    private static GuiSessionSource blockSource(int x, int y, int z) {
+        return new GuiSessionSource.BlockSource(new BlockPos(x, y, z), 0);
+    }
+
+    private static void loadSource(InteractionSourceTracker tracker, GuiSessionSource source) {
+        tracker.setPending(source, System.currentTimeMillis() / 50);
+    }
+
     @Test
-    void closingTrackedScreenHidesSessionInsteadOfDestroyingIt() {
+    void containerWithSourceCreatesSession() {
         GuiSessionManager manager = new GuiSessionManager();
-        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen current = new GuiContainer() {};
-        GuiSession session = manager.registerOpenedSession(current, "Chat");
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer container = new GuiContainer() {};
+        GuiSessionSource source = blockSource(1, 2, 3);
 
-        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(current, null, false);
+        loadSource(sourceTracker, source);
+        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(null, container, false);
 
-        assertTrue(decision.shouldSuppressCurrentClose());
-        assertEquals(session.getId(), decision.getHiddenSessionId());
-        assertTrue(manager.getSession(session.getId()).isHidden());
-        assertSame(current, manager.getSession(session.getId()).getScreen());
+        assertNotNull(decision.getActivatedSessionId());
+        assertEquals(1, manager.listAllSessions().size());
+        GuiSession session = manager.getForegroundSession();
+        assertNotNull(session);
+        assertSame(container, session.getScreen());
+        assertEquals(source, session.getSource());
+    }
+
+    @Test
+    void containerWithoutSourceIsExcluded() {
+        GuiSessionManager manager = new GuiSessionManager();
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer container = new GuiContainer() {};
+
+        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(null, container, false);
+
+        assertNull(decision.getActivatedSessionId());
+        assertTrue(manager.listAllSessions().isEmpty());
         assertNull(manager.getForegroundSession());
     }
 
     @Test
-    void explicitDestroyRemovesCurrentSessionInsteadOfHidingIt() {
+    void sameSourceReusesSession() {
         GuiSessionManager manager = new GuiSessionManager();
-        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen current = new GuiContainer() {};
-        GuiSession session = manager.registerOpenedSession(current, "Chat");
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer containerA = new GuiContainer() {};
+        GuiContainer containerB = new GuiContainer() {};
+        GuiSessionSource source = blockSource(1, 2, 3);
 
-        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(current, null, true);
+        loadSource(sourceTracker, source);
+        bridge.onBeforeDisplay(null, containerA, false);
+        GuiSessionId firstSessionId = manager.getForegroundSession().getId();
+
+        loadSource(sourceTracker, source);
+        bridge.onBeforeDisplay(containerA, containerB, false);
+
+        GuiSession session = manager.getForegroundSession();
+        assertNotNull(session);
+        assertEquals(firstSessionId, session.getId());
+        assertSame(containerB, session.getScreen());
+        assertEquals(1, manager.listAllSessions().size());
+    }
+
+    @Test
+    void hidingSessionMarksStale() {
+        GuiSessionManager manager = new GuiSessionManager();
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer container = new GuiContainer() {};
+        GuiSessionSource source = blockSource(1, 2, 3);
+
+        loadSource(sourceTracker, source);
+        bridge.onBeforeDisplay(null, container, false);
+        GuiSession session = manager.getForegroundSession();
+        assertFalse(session.isStale());
+
+        bridge.onBeforeDisplay(container, null, false);
+
+        assertTrue(session.isHidden());
+        assertTrue(session.isStale());
+    }
+
+    @Test
+    void hybridModeSuppressesClose() {
+        GuiSessionManager manager = new GuiSessionManager();
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer container = new GuiContainer() {};
+        GuiSessionSource source = blockSource(1, 2, 3);
+
+        loadSource(sourceTracker, source);
+        bridge.onBeforeDisplay(null, container, false);
+
+        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(container, null, false);
+
+        assertTrue(decision.shouldSuppressCurrentClose());
+        assertNotNull(decision.getHiddenSessionId());
+    }
+
+    @Test
+    void visualOnlyModeDoesNotSuppressClose() {
+        GuiSessionManager manager = new GuiSessionManager();
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.VISUAL_ONLY);
+        GuiContainer container = new GuiContainer() {};
+        GuiSessionSource source = blockSource(1, 2, 3);
+
+        loadSource(sourceTracker, source);
+        bridge.onBeforeDisplay(null, container, false);
+
+        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(container, null, false);
+
+        assertFalse(decision.shouldSuppressCurrentClose());
+        assertNotNull(decision.getHiddenSessionId());
+        assertTrue(manager.findSession(decision.getHiddenSessionId()).isHidden());
+    }
+
+    @Test
+    void explicitDestroyRemovesSessionInsteadOfHiding() {
+        GuiSessionManager manager = new GuiSessionManager();
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer container = new GuiContainer() {};
+        GuiSessionSource source = blockSource(1, 2, 3);
+
+        loadSource(sourceTracker, source);
+        bridge.onBeforeDisplay(null, container, false);
+        GuiSession session = manager.getForegroundSession();
+
+        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(container, null, true);
 
         assertFalse(decision.shouldSuppressCurrentClose());
         assertNull(decision.getHiddenSessionId());
@@ -44,60 +152,14 @@ class GuiLifecycleBridgeTest {
     }
 
     @Test
-    void openingNewTrackedScreenKeepsPreviousSessionCached() {
-        GuiSessionManager manager = new GuiSessionManager();
-        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen first = new GuiContainer() {};
-        GuiScreen second = new GuiContainer() {};
-
-        bridge.onBeforeDisplay(null, first, false);
-        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(first, second, false);
-
-        assertEquals(2, manager.listAllSessions().size());
-        assertTrue(manager.findSessionByScreen(first).isHidden());
-        assertSame(second, manager.getForegroundSession().getScreen());
-        assertEquals(manager.findSessionByScreen(second).getId(), decision.getActivatedSessionId());
-    }
-
-    @Test
-    void reopeningCachedScreenReactivatesExistingSession() {
-        GuiSessionManager manager = new GuiSessionManager();
-        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen first = new GuiContainer() {};
-        GuiScreen second = new GuiContainer() {};
-
-        bridge.onBeforeDisplay(null, first, false);
-        bridge.onBeforeDisplay(first, second, false);
-        bridge.onBeforeDisplay(second, first, false);
-
-        assertEquals(2, manager.listAllSessions().size());
-        assertFalse(manager.findSessionByScreen(first).isHidden());
-        assertTrue(manager.findSessionByScreen(second).isHidden());
-        assertSame(first, manager.getForegroundSession().getScreen());
-    }
-
-    @Test
-    void nonTrackedIncomingScreenDoesNotCreateForegroundSession() {
-        GuiSessionManager manager = new GuiSessionManager();
-        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen tracked = new GuiContainer() {};
-
-        bridge.onBeforeDisplay(null, tracked, false);
-        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(tracked, new GuiMainMenu(), false);
-
-        assertTrue(decision.shouldSuppressCurrentClose());
-        assertNull(decision.getActivatedSessionId());
-        assertEquals(1, manager.listAllSessions().size());
-        assertTrue(manager.findSessionByScreen(tracked).isHidden());
-        assertNull(manager.getForegroundSession());
-    }
-
-    @Test
     void worldUnloadClearsAllSessions() {
         GuiSessionManager manager = new GuiSessionManager();
-        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer container = new GuiContainer() {};
 
-        bridge.onBeforeDisplay(null, new GuiContainer() {}, false);
+        loadSource(sourceTracker, blockSource(1, 2, 3));
+        bridge.onBeforeDisplay(null, container, false);
         bridge.clearForWorldUnload();
 
         assertTrue(manager.listAllSessions().isEmpty());
@@ -105,9 +167,10 @@ class GuiLifecycleBridgeTest {
     }
 
     @Test
-    void explicitTabDestroyRemovesOnlyRequestedSession() {
+    void destroySessionFromTabRemovesOnlyRequestedSession() {
         GuiSessionManager manager = new GuiSessionManager();
-        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
         GuiSession first = manager.registerOpenedSession(new GuiContainer() {}, "First");
         GuiSession second = manager.registerOpenedSession(new GuiContainer() {}, "Second");
 
@@ -120,7 +183,8 @@ class GuiLifecycleBridgeTest {
     @Test
     void destroyForegroundSessionRemovesOnlyForegroundSession() {
         GuiSessionManager manager = new GuiSessionManager();
-        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
         GuiSession first = manager.registerOpenedSession(new GuiContainer() {}, "First");
         GuiSession second = manager.registerOpenedSession(new GuiContainer() {}, "Second");
 
@@ -129,5 +193,22 @@ class GuiLifecycleBridgeTest {
         assertSame(first, manager.findSession(first.getId()));
         assertNull(manager.findSession(second.getId()));
         assertNull(manager.getForegroundSession());
+    }
+
+    @Test
+    void backwardCompatConstructorUsesHybridMode() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
+        GuiContainer container = new GuiContainer() {};
+
+        // Pre-register session manually (simulates external registration)
+        GuiSession session = manager.registerOpenedSession(container, "Test");
+
+        GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(container, null, false);
+
+        // HYBRID mode suppresses close for existing sessions
+        assertTrue(decision.shouldSuppressCurrentClose());
+        assertEquals(session.getId(), decision.getHiddenSessionId());
+        assertTrue(session.isStale());
     }
 }

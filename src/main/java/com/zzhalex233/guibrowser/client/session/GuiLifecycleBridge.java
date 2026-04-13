@@ -1,5 +1,7 @@
 package com.zzhalex233.guibrowser.client.session;
 
+import com.zzhalex233.guibrowser.client.session.GuiTrackingPolicy.TrackingDecision;
+import com.zzhalex233.guibrowser.config.ContainerCacheMode;
 import net.minecraft.client.gui.GuiScreen;
 
 import javax.annotation.Nullable;
@@ -7,61 +9,89 @@ import java.util.Objects;
 
 public final class GuiLifecycleBridge {
     private final GuiSessionManager manager;
+    @Nullable
+    private final InteractionSourceTracker sourceTracker;
+    private final ContainerCacheMode cacheMode;
 
     public GuiLifecycleBridge(GuiSessionManager manager) {
+        this(manager, null, ContainerCacheMode.HYBRID);
+    }
+
+    public GuiLifecycleBridge(GuiSessionManager manager, @Nullable InteractionSourceTracker sourceTracker, ContainerCacheMode cacheMode) {
         this.manager = Objects.requireNonNull(manager, "manager");
+        this.sourceTracker = sourceTracker;
+        this.cacheMode = Objects.requireNonNull(cacheMode, "cacheMode");
     }
 
     public TransitionDecision onBeforeDisplay(@Nullable GuiScreen current, @Nullable GuiScreen incoming, boolean explicitDestroy) {
         if (current != null && current == incoming) {
-            GuiSession currentSession = ensureTrackedSession(current);
+            GuiSession currentSession = manager.findSessionByScreen(current);
             GuiSessionId currentSessionId = currentSession == null ? null : currentSession.getId();
             return new TransitionDecision(false, null, currentSessionId);
         }
 
+        // Handle outgoing screen
         GuiSessionId hiddenSessionId = null;
         boolean suppressCurrentClose = false;
-        if (GuiTrackingPolicy.shouldTrack(current)) {
-            GuiSession currentSession = ensureTrackedSession(current);
+
+        if (current != null) {
+            GuiSession currentSession = manager.findSessionByScreen(current);
             if (currentSession != null) {
                 if (explicitDestroy) {
                     manager.destroySession(currentSession.getId());
                 } else {
                     manager.hideSession(currentSession.getId());
+                    currentSession.markStale();
                     hiddenSessionId = currentSession.getId();
-                    suppressCurrentClose = true;
+                    suppressCurrentClose = cacheMode == ContainerCacheMode.HYBRID;
                 }
             }
         }
 
+        // Handle incoming screen
         GuiSessionId activatedSessionId = null;
-        if (GuiTrackingPolicy.shouldTrack(incoming)) {
-            GuiSession incomingSession = manager.findSessionByScreen(incoming);
-            if (incomingSession == null) {
-                incomingSession = manager.registerOpenedSession(incoming, null);
-            } else {
-                manager.activateSession(incomingSession.getId());
-                incomingSession = manager.getSession(incomingSession.getId());
+        if (incoming != null) {
+            boolean hasSource = sourceTracker != null && sourceTracker.hasPending();
+            TrackingDecision decision = GuiTrackingPolicy.decide(incoming, hasSource);
+
+            if (decision == TrackingDecision.TRACK_AS_TAB) {
+                GuiSessionSource source = null;
+                if (sourceTracker != null) {
+                    long currentTick = System.currentTimeMillis() / 50;
+                    source = sourceTracker.consumePending(currentTick);
+                }
+
+                GuiSession incomingSession = manager.registerOrReuseSession(incoming, null, source);
+                activatedSessionId = incomingSession.getId();
             }
-            activatedSessionId = incomingSession.getId();
         }
 
         return new TransitionDecision(suppressCurrentClose, hiddenSessionId, activatedSessionId);
     }
 
     public void onAfterDisplay(@Nullable GuiScreen nowVisible) {
-        if (!GuiTrackingPolicy.shouldTrack(nowVisible)) {
+        if (nowVisible == null) {
             return;
         }
 
         GuiSession session = manager.findSessionByScreen(nowVisible);
-        if (session == null) {
-            manager.registerOpenedSession(nowVisible, null);
+        if (session != null) {
+            if (!session.isForeground()) {
+                manager.activateSession(session.getId());
+            }
             return;
         }
 
-        if (!session.isForeground()) {
-            manager.activateSession(session.getId());
+        boolean hasSource = sourceTracker != null && sourceTracker.hasPending();
+        TrackingDecision decision = GuiTrackingPolicy.decide(nowVisible, hasSource);
+
+        if (decision == TrackingDecision.TRACK_AS_TAB) {
+            GuiSessionSource source = null;
+            if (sourceTracker != null) {
+                long currentTick = System.currentTimeMillis() / 50;
+                source = sourceTracker.consumePending(currentTick);
+            }
+            manager.registerOrReuseSession(nowVisible, null, source);
         }
     }
 
@@ -82,20 +112,6 @@ public final class GuiLifecycleBridge {
         if (foreground != null) {
             manager.destroySession(foreground.getId());
         }
-    }
-
-    @Nullable
-    private GuiSession ensureTrackedSession(@Nullable GuiScreen screen) {
-        if (!GuiTrackingPolicy.shouldTrack(screen)) {
-            return null;
-        }
-
-        GuiSession existing = manager.findSessionByScreen(screen);
-        if (existing != null) {
-            return existing;
-        }
-
-        return manager.registerOpenedSession(screen, null);
     }
 
     public static final class TransitionDecision {
