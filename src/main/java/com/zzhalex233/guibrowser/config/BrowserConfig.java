@@ -10,22 +10,30 @@ public final class BrowserConfig {
     private final int maxCachedSessions;
     private final boolean enableBookmarks;
     private final boolean enableHistoryPanel;
+    private final ContainerCacheMode containerCacheMode;
 
     public BrowserConfig(EscAction escAction, int captureHotkeyKeyCode) {
-        this(escAction, captureHotkeyKeyCode, 16, true, true);
+        this(escAction, captureHotkeyKeyCode, 16, true, true, ContainerCacheMode.HYBRID);
     }
 
     public BrowserConfig(EscAction escAction, int captureHotkeyKeyCode,
                          int maxCachedSessions, boolean enableBookmarks, boolean enableHistoryPanel) {
+        this(escAction, captureHotkeyKeyCode, maxCachedSessions, enableBookmarks, enableHistoryPanel, ContainerCacheMode.HYBRID);
+    }
+
+    public BrowserConfig(EscAction escAction, int captureHotkeyKeyCode,
+                         int maxCachedSessions, boolean enableBookmarks, boolean enableHistoryPanel,
+                         ContainerCacheMode containerCacheMode) {
         this.escAction = Objects.requireNonNull(escAction, "escAction");
         this.captureHotkeyKeyCode = captureHotkeyKeyCode;
         this.maxCachedSessions = maxCachedSessions;
         this.enableBookmarks = enableBookmarks;
         this.enableHistoryPanel = enableHistoryPanel;
+        this.containerCacheMode = Objects.requireNonNull(containerCacheMode, "containerCacheMode");
     }
 
     public static BrowserConfig defaults() {
-        return new BrowserConfig(EscAction.MINIMIZE, Keyboard.KEY_B, 16, true, true);
+        return new BrowserConfig(EscAction.MINIMIZE, Keyboard.KEY_B, 16, true, true, ContainerCacheMode.HYBRID);
     }
 
     public EscAction getEscAction() {
@@ -52,7 +60,15 @@ public final class BrowserConfig {
         return enableHistoryPanel;
     }
 
+    public ContainerCacheMode getContainerCacheMode() {
+        return containerCacheMode;
+    }
+
     public BrowserConfig withEscAction(EscAction escAction) {
-        return new BrowserConfig(escAction, captureHotkeyKeyCode, maxCachedSessions, enableBookmarks, enableHistoryPanel);
+        return new BrowserConfig(escAction, captureHotkeyKeyCode, maxCachedSessions, enableBookmarks, enableHistoryPanel, containerCacheMode);
+    }
+
+    public BrowserConfig withContainerCacheMode(ContainerCacheMode containerCacheMode) {
+        return new BrowserConfig(escAction, captureHotkeyKeyCode, maxCachedSessions, enableBookmarks, enableHistoryPanel, containerCacheMode);
     }
 }

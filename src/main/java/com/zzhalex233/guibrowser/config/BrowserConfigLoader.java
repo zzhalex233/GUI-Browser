@@ -21,6 +21,7 @@ public final class BrowserConfigLoader {
     private static final String ESC_ACTION_KEY = "browser.escAction";
     private static final String CAPTURE_HOTKEY_KEY_CODE_KEY = "browser.captureHotkeyKeyCode";
     private static final String LEGACY_OPEN_BROWSER_KEY_CODE_KEY = "browser.openBrowserKeyCode";
+    private static final String CONTAINER_CACHE_MODE_KEY = "browser.containerCacheMode";
 
     private BrowserConfigLoader() {
     }
@@ -66,11 +67,16 @@ public final class BrowserConfigLoader {
                 new Class<?>[]{String.class, String.class, int.class, int.class, int.class, String.class},
                 new Object[]{"openBrowserKeyCode", "browser", defaults.getCaptureHotkeyKeyCode(), 1, Integer.MAX_VALUE, "Legacy key code for opening the browser"});
 
+            String containerCacheModeName = invokeString(configurationClass, configuration, "getString",
+                new Class<?>[]{String.class, String.class, String.class, String.class},
+                new Object[]{"containerCacheMode", "browser", defaults.getContainerCacheMode().name(), "Container cache mode (HYBRID or VISUAL_ONLY)"});
+
             if (hasChanged(configurationClass, configuration)) {
                 invoke(configurationClass, configuration, "save");
             }
             return buildConfig(escActionName,
                 chooseCaptureHotkeyKeyCode(captureHotkeyKeyCode, hasCaptureHotkeyKey, legacyOpenKeyCode, hasLegacyOpenKey, defaults),
+                containerCacheModeName,
                 defaults);
         } catch (ClassNotFoundException e) {
             return null;
@@ -92,8 +98,12 @@ public final class BrowserConfigLoader {
             invoke(configurationClass, configuration, "getInt",
                 new Class<?>[]{String.class, String.class, int.class, int.class, int.class, String.class},
                 new Object[]{"captureHotkeyKeyCode", "browser", config.getCaptureHotkeyKeyCode(), 1, Integer.MAX_VALUE, "Key code for quick GUI capture"});
+            invoke(configurationClass, configuration, "getString",
+                new Class<?>[]{String.class, String.class, String.class, String.class},
+                new Object[]{"containerCacheMode", "browser", config.getContainerCacheMode().name(), "Container cache mode (HYBRID or VISUAL_ONLY)"});
             invokeCategorySet(configurationClass, configuration, "browser", "escAction", config.getEscAction().name());
             invokeCategorySet(configurationClass, configuration, "browser", "captureHotkeyKeyCode", config.getCaptureHotkeyKeyCode());
+            invokeCategorySet(configurationClass, configuration, "browser", "containerCacheMode", config.getContainerCacheMode().name());
             invoke(configurationClass, configuration, "save");
             return true;
         } catch (ClassNotFoundException e) {
@@ -123,8 +133,10 @@ public final class BrowserConfigLoader {
         boolean hasLegacyOpenKey = properties.containsKey(LEGACY_OPEN_BROWSER_KEY_CODE_KEY);
         int captureHotkeyKeyCode = parseInt(properties.getProperty(CAPTURE_HOTKEY_KEY_CODE_KEY), defaults.getCaptureHotkeyKeyCode());
         int legacyOpenKeyCode = parseInt(properties.getProperty(LEGACY_OPEN_BROWSER_KEY_CODE_KEY), defaults.getCaptureHotkeyKeyCode());
+        String containerCacheModeName = properties.getProperty(CONTAINER_CACHE_MODE_KEY, defaults.getContainerCacheMode().name());
         return buildConfig(escActionName,
             chooseCaptureHotkeyKeyCode(captureHotkeyKeyCode, hasCaptureHotkeyKey, legacyOpenKeyCode, hasLegacyOpenKey, defaults),
+            containerCacheModeName,
             defaults);
     }
 
@@ -138,6 +150,7 @@ public final class BrowserConfigLoader {
         Properties properties = new Properties();
         properties.setProperty(ESC_ACTION_KEY, config.getEscAction().name());
         properties.setProperty(CAPTURE_HOTKEY_KEY_CODE_KEY, Integer.toString(config.getCaptureHotkeyKeyCode()));
+        properties.setProperty(CONTAINER_CACHE_MODE_KEY, config.getContainerCacheMode().name());
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
             properties.store(writer, "GUI Browser config");
@@ -146,7 +159,8 @@ public final class BrowserConfigLoader {
         }
     }
 
-    private static BrowserConfig buildConfig(String escActionName, int captureHotkeyKeyCode, BrowserConfig defaults) {
+    private static BrowserConfig buildConfig(String escActionName, int captureHotkeyKeyCode,
+                                               String containerCacheModeName, BrowserConfig defaults) {
         EscAction escAction;
         try {
             escAction = EscAction.valueOf(escActionName.trim().toUpperCase());
@@ -158,7 +172,15 @@ public final class BrowserConfigLoader {
         if (sanitizedKeyCode != captureHotkeyKeyCode) {
             LOGGER.warning("Invalid captureHotkeyKeyCode '" + captureHotkeyKeyCode + "' in browser config. Using default " + defaults.getCaptureHotkeyKeyCode() + ".");
         }
-        return new BrowserConfig(escAction, sanitizedKeyCode);
+        ContainerCacheMode containerCacheMode;
+        try {
+            containerCacheMode = ContainerCacheMode.valueOf(containerCacheModeName.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            LOGGER.warning("Invalid containerCacheMode '" + containerCacheModeName + "' in browser config. Using default " + defaults.getContainerCacheMode() + ".");
+            containerCacheMode = defaults.getContainerCacheMode();
+        }
+        return new BrowserConfig(escAction, sanitizedKeyCode, defaults.getMaxCachedSessions(),
+            defaults.isEnableBookmarks(), defaults.isEnableHistoryPanel(), containerCacheMode);
     }
 
     private static int chooseCaptureHotkeyKeyCode(int captureHotkeyKeyCode, boolean hasCaptureHotkeyKey,
