@@ -18,7 +18,7 @@ public class ClientProxy extends CommonProxy {
         File configFile = new File(new File(minecraft.gameDir, "config"), "guibrowser.cfg");
         BrowserConfig config = BrowserConfigLoader.load(configFile);
         GuiBrowserRuntime runtime = GuiBrowserRuntime.initialize(config);
-        MinecraftForge.EVENT_BUS.register(new ClientForgeEventHandler(runtime.getLifecycleBridge()));
+        MinecraftForge.EVENT_BUS.register(new ClientForgeEventHandler(runtime.getLifecycleBridge(), runtime.getSourceTracker()));
         ClientCommandHandler.instance.registerCommand(new CommandGuiBrowser());
     }
 }

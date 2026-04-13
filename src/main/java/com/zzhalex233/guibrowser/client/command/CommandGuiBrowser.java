@@ -5,6 +5,7 @@ import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
+import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.server.MinecraftServer;
@@ -99,10 +100,30 @@ public class CommandGuiBrowser extends CommandBase {
         GuiSession foreground = manager.getForegroundSession();
 
         sender.sendMessage(new TextComponentString("--- GUI Browser Debug ---"));
+        sender.sendMessage(new TextComponentString("Cache mode: " + runtime.getConfig().getContainerCacheMode().name()));
         sender.sendMessage(new TextComponentString("Total sessions: " + manager.listAllSessions().size()));
         sender.sendMessage(new TextComponentString("Visible tabs: " + manager.listVisibleTabs().size()));
         sender.sendMessage(new TextComponentString("Foreground: " + (foreground != null ? foreground.getTitle() : "none")));
         GuiHistoryStore historyStore = manager.getHistoryStore();
         sender.sendMessage(new TextComponentString("History entries: " + (historyStore != null ? historyStore.size() : "disabled")));
+
+        for (GuiSession session : manager.listAllSessions()) {
+            String sourceStr = formatSource(session.getSource());
+            String staleStr = session.isStale() ? " [stale]" : "";
+            sender.sendMessage(new TextComponentString("  " + session.getTitle() + " source=" + sourceStr + staleStr));
+        }
+    }
+
+    private static String formatSource(@javax.annotation.Nullable GuiSessionSource source) {
+        if (source == null) {
+            return "none";
+        }
+        if (source instanceof GuiSessionSource.BlockSource) {
+            return ((GuiSessionSource.BlockSource) source).getPos().toString();
+        }
+        if (source instanceof GuiSessionSource.EntitySource) {
+            return "entity#" + ((GuiSessionSource.EntitySource) source).getEntityId();
+        }
+        return source.toString();
     }
 }

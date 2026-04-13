@@ -7,9 +7,8 @@ import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
 import com.zzhalex233.guibrowser.client.session.ContainerRestoreHandler;
 import com.zzhalex233.guibrowser.client.session.GuiLifecycleBridge;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
+import com.zzhalex233.guibrowser.client.session.InteractionSourceTracker;
 import com.zzhalex233.guibrowser.config.BrowserConfig;
-
-import javax.annotation.Nullable;
 
 import java.util.Objects;
 
@@ -23,9 +22,9 @@ public final class GuiBrowserRuntime {
     private final GuiLifecycleBridge lifecycleBridge;
     private final GuiChromeOverlayController chromeController;
     private final GuiChromeRenderer chromeRenderer;
+    private final InteractionSourceTracker sourceTracker;
+    private final ContainerRestoreHandler restoreHandler;
 
-    @Nullable
-    private ContainerRestoreHandler restoreHandler;
     private boolean suppressClosePacket;
 
     private GuiBrowserRuntime(BrowserConfig config) {
@@ -33,8 +32,11 @@ public final class GuiBrowserRuntime {
         this.historyStore = config.isEnableHistoryPanel() ? new GuiHistoryStore() : null;
         this.bookmarkStore = config.isEnableBookmarks() ? new GuiBookmarkStore() : null;
         this.sessionManager = new GuiSessionManager(historyStore, bookmarkStore);
-        this.lifecycleBridge = new GuiLifecycleBridge(sessionManager);
-        this.chromeController = new GuiChromeOverlayController(sessionManager);
+        this.sourceTracker = new InteractionSourceTracker();
+        ContainerRestoreHandler restoreHandler = new ContainerRestoreHandler(config.getContainerCacheMode());
+        this.restoreHandler = restoreHandler;
+        this.lifecycleBridge = new GuiLifecycleBridge(sessionManager, sourceTracker, config.getContainerCacheMode());
+        this.chromeController = new GuiChromeOverlayController(sessionManager, restoreHandler);
         this.chromeRenderer = new GuiChromeRenderer(chromeController);
     }
 
@@ -82,12 +84,11 @@ public final class GuiBrowserRuntime {
         this.suppressClosePacket = value;
     }
 
-    @Nullable
-    public ContainerRestoreHandler getRestoreHandler() {
-        return restoreHandler;
+    public InteractionSourceTracker getSourceTracker() {
+        return sourceTracker;
     }
 
-    public void setRestoreHandler(@Nullable ContainerRestoreHandler restoreHandler) {
-        this.restoreHandler = restoreHandler;
+    public ContainerRestoreHandler getRestoreHandler() {
+        return restoreHandler;
     }
 }
