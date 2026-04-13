@@ -4,9 +4,12 @@ import com.zzhalex233.guibrowser.client.chrome.GuiChromeOverlayController;
 import com.zzhalex233.guibrowser.client.chrome.GuiChromeRenderer;
 import com.zzhalex233.guibrowser.client.history.GuiBookmarkStore;
 import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
+import com.zzhalex233.guibrowser.client.session.ContainerRestoreHandler;
 import com.zzhalex233.guibrowser.client.session.GuiLifecycleBridge;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
 import com.zzhalex233.guibrowser.config.BrowserConfig;
+
+import javax.annotation.Nullable;
 
 import java.util.Objects;
 
@@ -21,6 +24,8 @@ public final class GuiBrowserRuntime {
     private final GuiChromeOverlayController chromeController;
     private final GuiChromeRenderer chromeRenderer;
 
+    @Nullable
+    private ContainerRestoreHandler restoreHandler;
     private boolean suppressClosePacket;
 
     private GuiBrowserRuntime(BrowserConfig config) {
@@ -75,5 +80,14 @@ public final class GuiBrowserRuntime {
 
     public void setSuppressClosePacket(boolean value) {
         this.suppressClosePacket = value;
+    }
+
+    @Nullable
+    public ContainerRestoreHandler getRestoreHandler() {
+        return restoreHandler;
+    }
+
+    public void setRestoreHandler(@Nullable ContainerRestoreHandler restoreHandler) {
+        this.restoreHandler = restoreHandler;
     }
 }

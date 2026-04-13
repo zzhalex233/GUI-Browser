@@ -86,7 +86,7 @@ public final class GuiSession {
         this.stale = true;
     }
 
-    void clearStale() {
+    public void clearStale() {
         this.stale = false;
     }
 

@@ -8,7 +8,8 @@
     "MixinMinecraft",
     "MixinGuiScreen",
     "MixinGuiContainer",
-    "MixinEntityPlayerSP"
+    "MixinEntityPlayerSP",
+    "MixinNetHandlerPlayClient"
   ],
   "server": []
 }
