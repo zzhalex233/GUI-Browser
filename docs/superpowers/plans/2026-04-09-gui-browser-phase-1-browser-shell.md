@@ -43,7 +43,7 @@ Spec reference: `docs/superpowers/specs/2026-04-09-gui-browser-foundation-design
 - Create: `src/main/java/com/zzhalex233/guibrowser/client/browser/BrowserManager.java`
 - Test: `src/test/java/com/zzhalex233/guibrowser/client/browser/BrowserManagerTest.java`
 
-- [ ] **Step 1: Write the failing state tests**
+- [x] **Step 1: Write the failing state tests**
 
 ```java
 class BrowserManagerTest {
@@ -78,13 +78,13 @@ class BrowserManagerTest {
 }
 ```
 
-- [ ] **Step 2: Run the focused test target and confirm it fails**
+- [x] **Step 2: Run the focused test target and confirm it fails**
 
 Run: `.\gradlew.bat test --tests com.zzhalex233.guibrowser.client.browser.BrowserManagerTest`
 
 Expected: `BrowserManagerTest` fails because browser classes do not exist yet.
 
-- [ ] **Step 3: Implement the minimal browser state classes**
+- [x] **Step 3: Implement the minimal browser state classes**
 
 ```java
 public enum BrowserState {
@@ -109,13 +109,13 @@ public final class BrowserManager {
 }
 ```
 
-- [ ] **Step 4: Re-run the focused test target**
+- [x] **Step 4: Re-run the focused test target**
 
 Run: `.\gradlew.bat test --tests com.zzhalex233.guibrowser.client.browser.BrowserManagerTest`
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit the core state model**
+- [x] **Step 5: Commit the core state model**
 
 ```bash
 git add src/main/java/com/zzhalex233/guibrowser/client/browser src/test/java/com/zzhalex233/guibrowser/client/browser
@@ -131,7 +131,7 @@ git commit -m "feat: add browser state foundation"
 - Modify: `src/main/java/com/zzhalex233/guibrowser/client/browser/BrowserManager.java`
 - Test: `src/test/java/com/zzhalex233/guibrowser/client/browser/BrowserManagerTest.java`
 
-- [ ] **Step 1: Add a failing defaults test**
+- [x] **Step 1: Add a failing defaults test**
 
 ```java
 @Test
@@ -143,13 +143,13 @@ void managerStartsWithDefaultEscActionAndKeybind() {
 }
 ```
 
-- [ ] **Step 2: Run the focused test target and confirm it fails**
+- [x] **Step 2: Run the focused test target and confirm it fails**
 
 Run: `.\gradlew.bat test --tests com.zzhalex233.guibrowser.client.browser.BrowserManagerTest`
 
 Expected: failure because the config model is incomplete.
 
-- [ ] **Step 3: Implement the config classes and wire them into the manager**
+- [x] **Step 3: Implement the config classes and wire them into the manager**
 
 ```java
 public enum EscAction {
@@ -166,13 +166,13 @@ public final class BrowserConfig {
 
 `BrowserConfigLoader` should read/write a Forge config file and fall back to `BrowserConfig.defaults()` on error.
 
-- [ ] **Step 4: Re-run the focused test target**
+- [x] **Step 4: Re-run the focused test target**
 
 Run: `.\gradlew.bat test --tests com.zzhalex233.guibrowser.client.browser.BrowserManagerTest`
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit the config layer**
+- [x] **Step 5: Commit the config layer**
 
 ```bash
 git add src/main/java/com/zzhalex233/guibrowser/config src/main/java/com/zzhalex233/guibrowser/client/browser src/test/java/com/zzhalex233/guibrowser/client/browser
@@ -193,7 +193,7 @@ git commit -m "feat: add browser config support"
 - Create: `src/main/java/com/zzhalex233/guibrowser/client/command/CommandGuiBrowser.java`
 - Create: `src/main/java/com/zzhalex233/guibrowser/client/event/ClientForgeEventHandler.java`
 
-- [ ] **Step 1: Add a manual verification checklist to the task notes**
+- [x] **Step 1: Add a manual verification checklist to the task notes**
 
 ```text
 - Browser hotkey opens the shell while in-world
@@ -202,7 +202,7 @@ git commit -m "feat: add browser config support"
 - /guibrowser state prints CLOSED or OPEN_EMPTY
 ```
 
-- [ ] **Step 2: Implement the client bootstrap**
+- [x] **Step 2: Implement the client bootstrap**
 
 `ClientProxy.preInit()` should:
 
@@ -217,7 +217,7 @@ public void preInit() {
 }
 ```
 
-- [ ] **Step 3: Implement the keybind and command behavior**
+- [x] **Step 3: Implement the keybind and command behavior**
 
 ```java
 if (BrowserKeybinds.OPEN_BROWSER.isPressed()) {
@@ -227,13 +227,13 @@ if (BrowserKeybinds.OPEN_BROWSER.isPressed()) {
 
 `CommandGuiBrowser` should support only `open`, `close`, `toggle`, and `state`.
 
-- [ ] **Step 4: Run the full automated test suite**
+- [x] **Step 4: Run the full automated test suite**
 
 Run: `.\gradlew.bat test`
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit the client wiring**
+- [x] **Step 5: Commit the client wiring**
 
 ```bash
 git add src/main/java/com/zzhalex233/guibrowser
@@ -248,7 +248,7 @@ git commit -m "feat: wire browser client bootstrap"
 - Modify: `src/main/java/com/zzhalex233/guibrowser/client/browser/BrowserManager.java`
 - Test: `src/test/java/com/zzhalex233/guibrowser/client/gui/BrowserChromeLayoutTest.java`
 
-- [ ] **Step 1: Write failing layout tests**
+- [x] **Step 1: Write failing layout tests**
 
 ```java
 class BrowserChromeLayoutTest {
@@ -269,13 +269,13 @@ class BrowserChromeLayoutTest {
 }
 ```
 
-- [ ] **Step 2: Run the focused layout test target and confirm it fails**
+- [x] **Step 2: Run the focused layout test target and confirm it fails**
 
 Run: `.\gradlew.bat test --tests com.zzhalex233.guibrowser.client.gui.BrowserChromeLayoutTest`
 
 Expected: failure because layout helpers do not exist yet.
 
-- [ ] **Step 3: Implement the layout helper and browser root GUI**
+- [x] **Step 3: Implement the layout helper and browser root GUI**
 
 `BrowserRootGui` should:
 
@@ -308,7 +308,7 @@ Manual checks:
 - click minimize and close buttons and confirm both close the empty shell
 - resize the game window and confirm the browser remains reachable
 
-- [ ] **Step 5: Commit the shell GUI**
+- [x] **Step 5: Commit the shell GUI**
 
 ```bash
 git add src/main/java/com/zzhalex233/guibrowser/client/gui src/main/java/com/zzhalex233/guibrowser/client/browser src/test/java/com/zzhalex233/guibrowser/client/gui
@@ -323,7 +323,7 @@ git commit -m "feat: add browser shell gui"
 - Modify: `docs/superpowers/specs/2026-04-09-gui-browser-foundation-design.md` (only if implementation reveals a necessary clarification)
 - Modify: `docs/superpowers/plans/2026-04-09-gui-browser-phase-1-browser-shell.md` (check off completed steps during execution)
 
-- [ ] **Step 1: Re-read the spec and confirm implemented scope matches Phase 1 only**
+- [x] **Step 1: Re-read the spec and confirm implemented scope matches Phase 1 only**
 
 Checklist:
 - no GUI capture
@@ -332,7 +332,7 @@ Checklist:
 - browser shell is draggable and fixed-size
 - keybind and command support exist
 
-- [ ] **Step 2: Run the full verification build**
+- [x] **Step 2: Run the full verification build**
 
 Run: `.\gradlew.bat build`
 
@@ -349,7 +349,7 @@ Manual checks:
 - close with `ESC`
 - close with button
 
-- [ ] **Step 4: Update this plan file by checking off completed steps**
+- [x] **Step 4: Update this plan file by checking off completed steps**
 
 Update only the steps actually completed during implementation.
 
@@ -361,3 +361,5 @@ git commit -m "feat: implement gui browser phase 1 shell"
 ```
 
 Plan complete and saved to `docs/superpowers/plans/2026-04-09-gui-browser-phase-1-browser-shell.md`. Ready to execute?
+
+

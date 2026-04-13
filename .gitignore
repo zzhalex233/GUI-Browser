@@ -4,6 +4,7 @@
 run/
 out/
 bin/
+.claude/
 
 # Ignore Gradle GUI config
 gradle-app.setting
