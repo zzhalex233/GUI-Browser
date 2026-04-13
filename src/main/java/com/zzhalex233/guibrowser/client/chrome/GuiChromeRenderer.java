@@ -4,6 +4,8 @@ import com.zzhalex233.guibrowser.client.session.GuiSession;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 
 import java.util.List;
 
@@ -33,6 +35,13 @@ public final class GuiChromeRenderer {
         GuiSession foreground = controller.getForegroundSession();
         GuiChromeTarget hoverTarget = layout.hitTest(mouseX, mouseY, tabs.size());
 
+        boolean depthWasEnabled = GL11.glGetBoolean(GL11.GL_DEPTH_TEST);
+        boolean blendWasEnabled = GL11.glGetBoolean(GL11.GL_BLEND);
+        int prevBlendSrc = GL11.glGetInteger(GL11.GL_BLEND_SRC);
+        int prevBlendDst = GL11.glGetInteger(GL11.GL_BLEND_DST);
+        int prevBlendSrcAlpha = GL11.glGetInteger(GL14.GL_BLEND_SRC_ALPHA);
+        int prevBlendDstAlpha = GL11.glGetInteger(GL14.GL_BLEND_DST_ALPHA);
+
         GlStateManager.pushMatrix();
         GlStateManager.disableDepth();
         GlStateManager.enableBlend();
@@ -41,7 +50,17 @@ public final class GuiChromeRenderer {
         drawTabs(layout, tabs, foreground, hoverTarget, fontRenderer);
         drawButtons(layout, hoverTarget, fontRenderer);
 
-        GlStateManager.enableDepth();
+        if (depthWasEnabled) {
+            GlStateManager.enableDepth();
+        } else {
+            GlStateManager.disableDepth();
+        }
+        if (blendWasEnabled) {
+            GlStateManager.enableBlend();
+        } else {
+            GlStateManager.disableBlend();
+        }
+        GlStateManager.tryBlendFuncSeparate(prevBlendSrc, prevBlendDst, prevBlendSrcAlpha, prevBlendDstAlpha);
         GlStateManager.popMatrix();
     }
 
