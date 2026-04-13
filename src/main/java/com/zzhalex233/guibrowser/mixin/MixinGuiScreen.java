@@ -5,7 +5,7 @@ import com.zzhalex233.guibrowser.client.chrome.GuiChromeRenderer;
 import com.zzhalex233.guibrowser.client.chrome.GuiChromeTarget;
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
 import com.zzhalex233.guibrowser.client.session.GuiSessionId;
-import com.zzhalex233.guibrowser.client.session.GuiTrackingPolicy;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
@@ -20,10 +20,10 @@ public abstract class MixinGuiScreen {
     @Inject(method = "drawScreen", at = @At("RETURN"))
     private void guibrowser$drawChromeOverlay(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         GuiScreen self = (GuiScreen) (Object) this;
-        if (!GuiTrackingPolicy.shouldTrack(self)) {
+        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
+        if (runtime.getSessionManager().findSessionByScreen(self) == null) {
             return;
         }
-        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
         ScaledResolution resolution = new ScaledResolution(Minecraft.getMinecraft());
         runtime.getChromeRenderer().render(resolution, mouseX, mouseY,
                 Minecraft.getMinecraft().fontRenderer);
@@ -32,10 +32,10 @@ public abstract class MixinGuiScreen {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void guibrowser$interceptChromeClicks(int mouseX, int mouseY, int mouseButton, CallbackInfo ci) {
         GuiScreen self = (GuiScreen) (Object) this;
-        if (!GuiTrackingPolicy.shouldTrack(self)) {
+        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
+        if (runtime.getSessionManager().findSessionByScreen(self) == null) {
             return;
         }
-        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
         GuiChromeOverlayController controller = runtime.getChromeController();
         ScaledResolution resolution = new ScaledResolution(Minecraft.getMinecraft());
         int screenWidth = resolution.getScaledWidth();

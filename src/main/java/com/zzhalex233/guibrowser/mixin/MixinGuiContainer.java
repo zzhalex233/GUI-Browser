@@ -2,7 +2,7 @@ package com.zzhalex233.guibrowser.mixin;
 
 import com.zzhalex233.guibrowser.client.chrome.GuiLayoutPolicy;
 import com.zzhalex233.guibrowser.client.chrome.GuiLayoutState;
-import com.zzhalex233.guibrowser.client.session.GuiTrackingPolicy;
+import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
@@ -21,7 +21,7 @@ public abstract class MixinGuiContainer extends GuiScreen {
     @Inject(method = "initGui", at = @At("RETURN"))
     private void guibrowser$adjustGuiTopForChrome(CallbackInfo ci) {
         GuiScreen self = (GuiScreen) (Object) this;
-        if (!GuiTrackingPolicy.shouldTrack(self)) {
+        if (GuiBrowserRuntime.getInstance().getSessionManager().findSessionByScreen(self) == null) {
             return;
         }
         ScaledResolution resolution = new ScaledResolution(Minecraft.getMinecraft());
