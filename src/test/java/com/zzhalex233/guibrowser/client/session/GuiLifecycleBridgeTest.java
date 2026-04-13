@@ -1,8 +1,8 @@
 package com.zzhalex233.guibrowser.client.session;
 
-import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,7 +17,7 @@ class GuiLifecycleBridgeTest {
     void closingTrackedScreenHidesSessionInsteadOfDestroyingIt() {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen current = new GuiChat();
+        GuiScreen current = new GuiContainer() {};
         GuiSession session = manager.registerOpenedSession(current, "Chat");
 
         GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(current, null, false);
@@ -33,7 +33,7 @@ class GuiLifecycleBridgeTest {
     void explicitDestroyRemovesCurrentSessionInsteadOfHidingIt() {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen current = new GuiChat();
+        GuiScreen current = new GuiContainer() {};
         GuiSession session = manager.registerOpenedSession(current, "Chat");
 
         GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(current, null, true);
@@ -47,8 +47,8 @@ class GuiLifecycleBridgeTest {
     void openingNewTrackedScreenKeepsPreviousSessionCached() {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen first = new GuiChat();
-        GuiScreen second = new GuiChat();
+        GuiScreen first = new GuiContainer() {};
+        GuiScreen second = new GuiContainer() {};
 
         bridge.onBeforeDisplay(null, first, false);
         GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(first, second, false);
@@ -63,8 +63,8 @@ class GuiLifecycleBridgeTest {
     void reopeningCachedScreenReactivatesExistingSession() {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen first = new GuiChat();
-        GuiScreen second = new GuiChat();
+        GuiScreen first = new GuiContainer() {};
+        GuiScreen second = new GuiContainer() {};
 
         bridge.onBeforeDisplay(null, first, false);
         bridge.onBeforeDisplay(first, second, false);
@@ -80,7 +80,7 @@ class GuiLifecycleBridgeTest {
     void nonTrackedIncomingScreenDoesNotCreateForegroundSession() {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiScreen tracked = new GuiChat();
+        GuiScreen tracked = new GuiContainer() {};
 
         bridge.onBeforeDisplay(null, tracked, false);
         GuiLifecycleBridge.TransitionDecision decision = bridge.onBeforeDisplay(tracked, new GuiMainMenu(), false);
@@ -97,7 +97,7 @@ class GuiLifecycleBridgeTest {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
 
-        bridge.onBeforeDisplay(null, new GuiChat(), false);
+        bridge.onBeforeDisplay(null, new GuiContainer() {}, false);
         bridge.clearForWorldUnload();
 
         assertTrue(manager.listAllSessions().isEmpty());
@@ -108,8 +108,8 @@ class GuiLifecycleBridgeTest {
     void explicitTabDestroyRemovesOnlyRequestedSession() {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiSession first = manager.registerOpenedSession(new GuiChat(), "First");
-        GuiSession second = manager.registerOpenedSession(new GuiChat(), "Second");
+        GuiSession first = manager.registerOpenedSession(new GuiContainer() {}, "First");
+        GuiSession second = manager.registerOpenedSession(new GuiContainer() {}, "Second");
 
         bridge.destroySessionFromTab(first.getId());
 
@@ -121,8 +121,8 @@ class GuiLifecycleBridgeTest {
     void destroyForegroundSessionRemovesOnlyForegroundSession() {
         GuiSessionManager manager = new GuiSessionManager();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager);
-        GuiSession first = manager.registerOpenedSession(new GuiChat(), "First");
-        GuiSession second = manager.registerOpenedSession(new GuiChat(), "Second");
+        GuiSession first = manager.registerOpenedSession(new GuiContainer() {}, "First");
+        GuiSession second = manager.registerOpenedSession(new GuiContainer() {}, "Second");
 
         bridge.destroyForegroundSession();
 
