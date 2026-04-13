@@ -7,12 +7,16 @@ import com.zzhalex233.guibrowser.client.history.GuiHistoryEntry;
 import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 public final class GuiSessionManager {
     private final LinkedHashMap<GuiSessionId, GuiSession> sessions = new LinkedHashMap<>();
+    private final HashMap<GuiSessionSource, GuiSessionId> sourceIndex = new HashMap<>();
     private final GuiHistoryStore historyStore;
     private final GuiBookmarkStore bookmarkStore;
     private GuiSessionId foregroundSessionId;
@@ -32,17 +36,40 @@ public final class GuiSessionManager {
     }
 
     public GuiSession registerOpenedSession(GuiScreen screen, String title) {
+        return registerOrReuseSession(screen, title, null);
+    }
+
+    public GuiSession registerOrReuseSession(GuiScreen screen, String title, @Nullable GuiSessionSource source) {
         Objects.requireNonNull(screen, "screen");
         long now = System.currentTimeMillis();
+
+        if (source != null) {
+            GuiSessionId existingId = sourceIndex.get(source);
+            if (existingId != null) {
+                GuiSession existing = sessions.get(existingId);
+                if (existing != null) {
+                    activateSession(existingId);
+                    existing.updateScreen(screen);
+                    return existing;
+                }
+                sourceIndex.remove(source);
+            }
+        }
+
         GuiSession previousForeground = getForegroundSession();
         if (previousForeground != null) {
             previousForeground.clearForeground();
         }
-        GuiSession session = new GuiSession(GuiSessionId.create(), screen, GuiSessionTitleResolver.resolve(screen, title), now, null);
+        GuiSession session = new GuiSession(GuiSessionId.create(), screen, GuiSessionTitleResolver.resolve(screen, title), now, source);
         session.markForeground(now);
         sessions.put(session.getId(), session);
         foregroundSessionId = session.getId();
         lastActivatedSessionId = session.getId();
+
+        if (source != null) {
+            sourceIndex.put(source, session.getId());
+        }
+
         recordHistory(session.getTitle(), GuiHistoryEntry.Action.OPENED);
         return session;
     }
@@ -103,6 +130,9 @@ public final class GuiSessionManager {
         if (removed == null) {
             return;
         }
+        if (removed.getSource() != null) {
+            sourceIndex.remove(removed.getSource());
+        }
         if (id.equals(foregroundSessionId)) {
             foregroundSessionId = null;
         }
@@ -129,6 +159,7 @@ public final class GuiSessionManager {
     public void clearForWorldUnload() {
         recordHistory("*", GuiHistoryEntry.Action.CLEARED_ON_UNLOAD);
         sessions.clear();
+        sourceIndex.clear();
         foregroundSessionId = null;
         lastActivatedSessionId = null;
         if (bookmarkStore != null) {

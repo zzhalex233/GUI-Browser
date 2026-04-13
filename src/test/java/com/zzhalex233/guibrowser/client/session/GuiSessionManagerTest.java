@@ -1,10 +1,13 @@
 package com.zzhalex233.guibrowser.client.session;
 
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.util.math.BlockPos;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -134,5 +137,63 @@ class GuiSessionManagerTest {
 
         assertNull(manager.getForegroundSession());
         assertEquals(second.getId(), manager.getLastActivatedSessionId());
+    }
+
+    @Test
+    void registerWithSameSourceReusesExistingSession() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(1, 2, 3), 0);
+        GuiContainer gui1 = new GuiContainer();
+        GuiContainer gui2 = new GuiContainer();
+
+        GuiSession first = manager.registerOrReuseSession(gui1, "Chest", source);
+        GuiSession second = manager.registerOrReuseSession(gui2, "Chest", source);
+
+        assertSame(first, second);
+        assertEquals(1, manager.listAllSessions().size());
+        assertSame(gui2, first.getScreen());
+    }
+
+    @Test
+    void registerWithDifferentSourcesCreatesSeparateSessions() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiSessionSource sourceA = new GuiSessionSource.BlockSource(new BlockPos(1, 2, 3), 0);
+        GuiSessionSource sourceB = new GuiSessionSource.BlockSource(new BlockPos(4, 5, 6), 0);
+        GuiContainer guiA = new GuiContainer();
+        GuiContainer guiB = new GuiContainer();
+
+        GuiSession first = manager.registerOrReuseSession(guiA, "Chest A", sourceA);
+        GuiSession second = manager.registerOrReuseSession(guiB, "Chest B", sourceB);
+
+        assertNotSame(first, second);
+        assertEquals(2, manager.listAllSessions().size());
+    }
+
+    @Test
+    void destroySessionCleansSourceIndex() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(1, 2, 3), 0);
+        GuiContainer gui1 = new GuiContainer();
+        GuiContainer gui2 = new GuiContainer();
+
+        GuiSession first = manager.registerOrReuseSession(gui1, "Chest", source);
+        manager.destroySession(first.getId());
+        GuiSession second = manager.registerOrReuseSession(gui2, "Chest", source);
+
+        assertNotSame(first, second);
+        assertEquals(1, manager.listAllSessions().size());
+    }
+
+    @Test
+    void registerWithNullSourceAlwaysCreatesNewSession() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiContainer gui1 = new GuiContainer();
+        GuiContainer gui2 = new GuiContainer();
+
+        GuiSession first = manager.registerOrReuseSession(gui1, "Chest", null);
+        GuiSession second = manager.registerOrReuseSession(gui2, "Chest", null);
+
+        assertNotSame(first, second);
+        assertEquals(2, manager.listAllSessions().size());
     }
 }
