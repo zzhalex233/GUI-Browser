@@ -21,6 +21,8 @@ public final class GuiBrowserRuntime {
     private final GuiChromeOverlayController chromeController;
     private final GuiChromeRenderer chromeRenderer;
 
+    private boolean suppressClosePacket;
+
     private GuiBrowserRuntime(BrowserConfig config) {
         this.config = Objects.requireNonNull(config, "config");
         this.historyStore = config.isEnableHistoryPanel() ? new GuiHistoryStore() : null;
@@ -65,5 +67,13 @@ public final class GuiBrowserRuntime {
 
     public GuiChromeRenderer getChromeRenderer() {
         return chromeRenderer;
+    }
+
+    public boolean isSuppressClosePacket() {
+        return suppressClosePacket;
+    }
+
+    public void setSuppressClosePacket(boolean value) {
+        this.suppressClosePacket = value;
     }
 }
