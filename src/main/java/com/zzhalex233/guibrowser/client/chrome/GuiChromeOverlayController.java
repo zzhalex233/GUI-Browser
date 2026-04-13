@@ -1,20 +1,29 @@
 package com.zzhalex233.guibrowser.client.chrome;
 
 import com.zzhalex233.guibrowser.client.history.GuiBookmarkStore;
+import com.zzhalex233.guibrowser.client.session.ContainerRestoreHandler;
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionId;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public final class GuiChromeOverlayController {
 
     private final GuiSessionManager sessionManager;
+    @Nullable
+    private final ContainerRestoreHandler restoreHandler;
     private boolean historyPanelOpen;
     private boolean bookmarkPanelOpen;
 
     public GuiChromeOverlayController(GuiSessionManager sessionManager) {
+        this(sessionManager, null);
+    }
+
+    public GuiChromeOverlayController(GuiSessionManager sessionManager, @Nullable ContainerRestoreHandler restoreHandler) {
         this.sessionManager = sessionManager;
+        this.restoreHandler = restoreHandler;
     }
 
     public List<GuiSession> getTabs() {
@@ -26,6 +35,17 @@ public final class GuiChromeOverlayController {
     }
 
     public void handleTabLeftClick(GuiSessionId sessionId) {
+        GuiSession session = sessionManager.findSession(sessionId);
+        if (session == null) {
+            return;
+        }
+        if (session.isStale() && restoreHandler != null) {
+            boolean restored = restoreHandler.requestRestore(session);
+            if (!restored) {
+                sessionManager.destroySession(sessionId);
+            }
+            return;
+        }
         sessionManager.activateSession(sessionId);
     }
 

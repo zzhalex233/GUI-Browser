@@ -14,9 +14,11 @@ public final class GuiChromeRenderer {
     private static final int BAR_COLOR = 0xCC222222;
     private static final int TAB_COLOR = 0xCC444444;
     private static final int TAB_ACTIVE_COLOR = 0xCC666666;
+    private static final int TAB_STALE_COLOR = 0x66333333;
     private static final int TAB_HOVER_COLOR = 0x44FFFFFF;
     private static final int BUTTON_HOVER_COLOR = 0x44FFFFFF;
     private static final int TEXT_COLOR = 0xFFFFFFFF;
+    private static final int TEXT_STALE_COLOR = 0xFF888888;
     private static final int CLOSE_COLOR = 0xFFAAAAAA;
     private static final int CLOSE_HOVER_COLOR = 0xFFFF6666;
 
@@ -81,18 +83,21 @@ public final class GuiChromeRenderer {
             boolean isCloseHovered = hoverTarget.getType() == GuiChromeTarget.Type.TAB_CLOSE
                     && hoverTarget.getTabIndex() == i;
 
-            int bgColor = isActive ? TAB_ACTIVE_COLOR : TAB_COLOR;
+            boolean isStale = tab.isStale();
+            int bgColor = isStale ? TAB_STALE_COLOR : (isActive ? TAB_ACTIVE_COLOR : TAB_COLOR);
             Gui.drawRect(tabRect.getX(), tabRect.getY(), tabRect.getRight(), tabRect.getBottom(), bgColor);
 
             if (isHovered && !isCloseHovered) {
                 Gui.drawRect(tabRect.getX(), tabRect.getY(), tabRect.getRight(), tabRect.getBottom(), TAB_HOVER_COLOR);
             }
 
-            String title = trimTitle(tab.getTitle(), tabRect.getWidth() - GuiChromeLayout.TAB_CLOSE_SIZE - 6, fontRenderer);
+            String rawTitle = isStale ? "~ " + tab.getTitle() : tab.getTitle();
+            String title = trimTitle(rawTitle, tabRect.getWidth() - GuiChromeLayout.TAB_CLOSE_SIZE - 6, fontRenderer);
+            int textColor = isStale ? TEXT_STALE_COLOR : TEXT_COLOR;
             fontRenderer.drawString(title,
                     tabRect.getX() + 2,
                     tabRect.getY() + (tabRect.getHeight() - 8) / 2,
-                    TEXT_COLOR);
+                    textColor);
 
             GuiChromeLayout.Rect closeRect = layout.tabCloseRect(i);
             int closeColor = isCloseHovered ? CLOSE_HOVER_COLOR : CLOSE_COLOR;
