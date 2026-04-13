@@ -38,7 +38,7 @@ public final class GuiSessionManager {
         if (previousForeground != null) {
             previousForeground.clearForeground();
         }
-        GuiSession session = new GuiSession(GuiSessionId.create(), screen, GuiSessionTitleResolver.resolve(screen, title), now);
+        GuiSession session = new GuiSession(GuiSessionId.create(), screen, GuiSessionTitleResolver.resolve(screen, title), now, null);
         session.markForeground(now);
         sessions.put(session.getId(), session);
         foregroundSessionId = session.getId();

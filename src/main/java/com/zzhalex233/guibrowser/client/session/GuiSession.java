@@ -4,16 +4,21 @@ import net.minecraft.client.gui.GuiScreen;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 public final class GuiSession {
     private final GuiSessionId id;
-    private final GuiScreen screen;
+    private GuiScreen screen;
     private final String title;
     private final long createdAt;
     private long lastActivatedAt;
     private boolean foreground;
     private boolean hidden;
+    @Nullable
+    private final GuiSessionSource source;
+    private boolean stale;
 
-    GuiSession(GuiSessionId id, GuiScreen screen, String title, long createdAt) {
+    GuiSession(GuiSessionId id, GuiScreen screen, String title, long createdAt, @Nullable GuiSessionSource source) {
         this.id = Objects.requireNonNull(id, "id");
         this.screen = Objects.requireNonNull(screen, "screen");
         this.title = Objects.requireNonNull(title, "title");
@@ -21,6 +26,8 @@ public final class GuiSession {
         this.lastActivatedAt = createdAt;
         this.foreground = true;
         this.hidden = false;
+        this.source = source;
+        this.stale = false;
     }
 
     public GuiSessionId getId() {
@@ -64,5 +71,26 @@ public final class GuiSession {
     void markHidden() {
         this.hidden = true;
         this.foreground = false;
+    }
+
+    @Nullable
+    public GuiSessionSource getSource() {
+        return source;
+    }
+
+    public boolean isStale() {
+        return stale;
+    }
+
+    void markStale() {
+        this.stale = true;
+    }
+
+    void clearStale() {
+        this.stale = false;
+    }
+
+    void updateScreen(GuiScreen newScreen) {
+        this.screen = Objects.requireNonNull(newScreen, "newScreen");
     }
 }
