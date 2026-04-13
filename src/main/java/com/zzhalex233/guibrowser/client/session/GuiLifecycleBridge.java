@@ -51,14 +51,14 @@ public final class GuiLifecycleBridge {
         // Handle incoming screen
         GuiSessionId activatedSessionId = null;
         if (incoming != null) {
-            boolean hasSource = sourceTracker != null && sourceTracker.hasPending();
+            long now = System.currentTimeMillis();
+            boolean hasSource = sourceTracker != null && sourceTracker.hasPending(now);
             TrackingDecision decision = GuiTrackingPolicy.decide(incoming, hasSource);
 
             if (decision == TrackingDecision.TRACK_AS_TAB) {
                 GuiSessionSource source = null;
                 if (sourceTracker != null) {
-                    long currentTick = System.currentTimeMillis() / 50;
-                    source = sourceTracker.consumePending(currentTick);
+                    source = sourceTracker.consumePending(now);
                 }
 
                 GuiSession incomingSession = manager.registerOrReuseSession(incoming, null, source);
@@ -82,14 +82,14 @@ public final class GuiLifecycleBridge {
             return;
         }
 
-        boolean hasSource = sourceTracker != null && sourceTracker.hasPending();
+        long now = System.currentTimeMillis();
+        boolean hasSource = sourceTracker != null && sourceTracker.hasPending(now);
         TrackingDecision decision = GuiTrackingPolicy.decide(nowVisible, hasSource);
 
         if (decision == TrackingDecision.TRACK_AS_TAB) {
             GuiSessionSource source = null;
             if (sourceTracker != null) {
-                long currentTick = System.currentTimeMillis() / 50;
-                source = sourceTracker.consumePending(currentTick);
+                source = sourceTracker.consumePending(now);
             }
             manager.registerOrReuseSession(nowVisible, null, source);
         }
@@ -97,10 +97,9 @@ public final class GuiLifecycleBridge {
 
     public void onWorldUnload() {
         manager.clearForWorldUnload();
-    }
-
-    public void clearForWorldUnload() {
-        onWorldUnload();
+        if (sourceTracker != null) {
+            sourceTracker.clear();
+        }
     }
 
     public void destroySessionFromTab(GuiSessionId id) {

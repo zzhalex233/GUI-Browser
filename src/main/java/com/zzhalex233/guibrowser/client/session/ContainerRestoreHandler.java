@@ -16,10 +16,12 @@ import javax.annotation.Nullable;
 public final class ContainerRestoreHandler {
 
     private static final double MAX_INTERACTION_RANGE = 6.0;
+    private static final long RESTORE_TIMEOUT_MS = 5000L;
 
     private final ContainerCacheMode cacheMode;
     @Nullable
     private GuiSession pendingRestoreSession;
+    private long pendingRestoreTimestamp;
 
     public ContainerRestoreHandler(ContainerCacheMode cacheMode) {
         this.cacheMode = cacheMode;
@@ -79,6 +81,7 @@ public final class ContainerRestoreHandler {
         // For HYBRID mode, set pending restore so MixinNetHandlerPlayClient can intercept
         if (cacheMode == ContainerCacheMode.HYBRID) {
             pendingRestoreSession = session;
+            pendingRestoreTimestamp = System.currentTimeMillis();
         }
 
         // Simulate right-click on the block
@@ -111,6 +114,7 @@ public final class ContainerRestoreHandler {
         // For HYBRID mode, set pending restore
         if (cacheMode == ContainerCacheMode.HYBRID) {
             pendingRestoreSession = session;
+            pendingRestoreTimestamp = System.currentTimeMillis();
         }
 
         // Simulate interaction with entity
@@ -121,7 +125,14 @@ public final class ContainerRestoreHandler {
     // -- HYBRID mode coordination (used by MixinNetHandlerPlayClient) --
 
     public boolean isPendingRestore() {
-        return pendingRestoreSession != null;
+        if (pendingRestoreSession == null) {
+            return false;
+        }
+        if (System.currentTimeMillis() - pendingRestoreTimestamp > RESTORE_TIMEOUT_MS) {
+            pendingRestoreSession = null;
+            return false;
+        }
+        return true;
     }
 
     @Nullable

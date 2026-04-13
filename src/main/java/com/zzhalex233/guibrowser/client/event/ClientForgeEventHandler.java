@@ -34,7 +34,7 @@ public final class ClientForgeEventHandler {
         if (!event.getWorld().isRemote) return;
         sourceTracker.setPending(
             new GuiSessionSource.BlockSource(event.getPos(), event.getEntityPlayer().dimension),
-            event.getWorld().getTotalWorldTime()
+            System.currentTimeMillis()
         );
     }
 
@@ -43,7 +43,7 @@ public final class ClientForgeEventHandler {
         if (!event.getWorld().isRemote) return;
         sourceTracker.setPending(
             new GuiSessionSource.EntitySource(event.getTarget().getEntityId()),
-            event.getWorld().getTotalWorldTime()
+            System.currentTimeMillis()
         );
     }
 }

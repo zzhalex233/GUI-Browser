@@ -19,7 +19,7 @@ class GuiLifecycleBridgeTest {
     }
 
     private static void loadSource(InteractionSourceTracker tracker, GuiSessionSource source) {
-        tracker.setPending(source, System.currentTimeMillis() / 50);
+        tracker.setPending(source, System.currentTimeMillis());
     }
 
     @Test
@@ -160,7 +160,7 @@ class GuiLifecycleBridgeTest {
 
         loadSource(sourceTracker, blockSource(1, 2, 3));
         bridge.onBeforeDisplay(null, container, false);
-        bridge.clearForWorldUnload();
+        bridge.onWorldUnload();
 
         assertTrue(manager.listAllSessions().isEmpty());
         assertNull(manager.getForegroundSession());

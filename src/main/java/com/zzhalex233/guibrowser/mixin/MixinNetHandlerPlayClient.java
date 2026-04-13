@@ -17,6 +17,10 @@ public abstract class MixinNetHandlerPlayClient {
 
     @Inject(method = "handleOpenWindow", at = @At("HEAD"), cancellable = true)
     private void guibrowser$interceptOpenWindowForRestore(SPacketOpenWindow packetIn, CallbackInfo ci) {
+        if (!Minecraft.getMinecraft().isCallingFromMinecraftThread()) {
+            return;
+        }
+
         ContainerRestoreHandler restoreHandler = GuiBrowserRuntime.getInstance().getRestoreHandler();
         if (restoreHandler == null || !restoreHandler.isPendingRestore()) {
             return;

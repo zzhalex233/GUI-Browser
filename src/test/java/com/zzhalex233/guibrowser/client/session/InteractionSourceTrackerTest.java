@@ -51,8 +51,8 @@ class InteractionSourceTrackerTest {
         InteractionSourceTracker tracker = new InteractionSourceTracker();
         GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(1, 2, 3), 0);
 
-        tracker.setPending(source, 100L);
-        GuiSessionSource result = tracker.consumePending(141L);
+        tracker.setPending(source, 1000L);
+        GuiSessionSource result = tracker.consumePending(3001L);
 
         assertNull(result);
     }
@@ -62,8 +62,8 @@ class InteractionSourceTrackerTest {
         InteractionSourceTracker tracker = new InteractionSourceTracker();
         GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(1, 2, 3), 0);
 
-        tracker.setPending(source, 100L);
-        GuiSessionSource result = tracker.consumePending(140L);
+        tracker.setPending(source, 1000L);
+        GuiSessionSource result = tracker.consumePending(3000L);
 
         assertEquals(source, result);
     }
@@ -81,16 +81,18 @@ class InteractionSourceTrackerTest {
     }
 
     @Test
-    void hasPendingReturnsTrueWhenSet() {
+    void hasPendingReturnsTrueWhenSetAndNotExpired() {
         InteractionSourceTracker tracker = new InteractionSourceTracker();
         GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(5, 10, 15), 0);
 
-        assertFalse(tracker.hasPending());
+        assertFalse(tracker.hasPending(100L));
 
-        tracker.setPending(source, 100L);
-        assertTrue(tracker.hasPending());
+        tracker.setPending(source, 1000L);
+        assertTrue(tracker.hasPending(1000L));
+        assertTrue(tracker.hasPending(3000L));
+        assertFalse(tracker.hasPending(3001L));
 
-        tracker.consumePending(100L);
-        assertFalse(tracker.hasPending());
+        tracker.consumePending(1000L);
+        assertFalse(tracker.hasPending(1000L));
     }
 }

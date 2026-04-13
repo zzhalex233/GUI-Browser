@@ -32,6 +32,9 @@ public abstract class MixinMinecraft {
     )
     private void guibrowser$beforeDisplay(@Nullable GuiScreen guiScreenIn, CallbackInfo callbackInfo, GuiScreen current, GuiOpenEvent event) {
         guibrowser$transitionDecision = GuiBrowserRuntime.getInstance().getLifecycleBridge().onBeforeDisplay(current, guiScreenIn, false);
+        if (guibrowser$transitionDecision != null && guibrowser$transitionDecision.shouldSuppressCurrentClose()) {
+            GuiBrowserRuntime.getInstance().setSuppressClosePacket(true);
+        }
     }
 
     @Redirect(method = "displayGuiScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiScreen;onGuiClosed()V"))
@@ -45,6 +48,7 @@ public abstract class MixinMinecraft {
     @Inject(method = "displayGuiScreen", at = @At("RETURN"))
     private void guibrowser$afterDisplay(@Nullable GuiScreen guiScreenIn, CallbackInfo callbackInfo) {
         GuiBrowserRuntime.getInstance().getLifecycleBridge().onAfterDisplay(currentScreen);
+        GuiBrowserRuntime.getInstance().setSuppressClosePacket(false);
         guibrowser$transitionDecision = null;
     }
 }
