@@ -54,8 +54,9 @@ public final class GuiChromeOverlayController {
         if (session == null) {
             return TabSwitchResult.FAILED;
         }
-        // Non-container screens don't have server-side windows → always direct switch
-        if (!(session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer)) {
+        // Non-container screens (and not placeholder) don't have server-side windows → always direct switch
+        if (!(session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer)
+                && !(session.getScreen() instanceof com.zzhalex233.guibrowser.client.session.StaleTabPlaceholderScreen)) {
             sessionManager.activateSession(sessionId);
             return TabSwitchResult.DIRECT_SWITCH;
         }

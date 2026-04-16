@@ -7,7 +7,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.world.World;
 
@@ -66,23 +65,15 @@ public final class ContainerRestoreHandler {
             return false;
         }
 
-        // Check block still exists (not air)
-        if (world.isAirBlock(pos)) {
-            return false;
-        }
-
         // For HYBRID mode, set pending restore so MixinNetHandlerPlayClient can intercept
         if (cacheMode == ContainerCacheMode.HYBRID) {
             pendingRestoreSession = session;
             pendingRestoreTimestamp = System.currentTimeMillis();
         }
 
-        // Simulate right-click on the block
-        mc.playerController.processRightClickBlock(
-            player, world, pos, EnumFacing.UP,
-            new Vec3d(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5),
-            EnumHand.MAIN_HAND
-        );
+        // Send the interaction packet directly to bypass client-side reach check.
+        // Deferred to RemoteInteractionHelper to avoid loading network classes eagerly.
+        RemoteInteractionHelper.sendBlockInteraction(player, pos);
         return true;
     }
 
