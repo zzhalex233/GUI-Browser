@@ -1,10 +1,11 @@
 package com.zzhalex233.guibrowser.client.session;
 
+import com.zzhalex233.guibrowser.client.popup.GuiRestoreFailedToast;
+import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
 import com.zzhalex233.guibrowser.config.ContainerCacheMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -14,28 +15,43 @@ import javax.annotation.Nullable;
 
 public final class ContainerRestoreHandler {
 
-    private static final long RESTORE_TIMEOUT_MS = 5000L;
+    private static final long RESTORE_TIMEOUT_MS = 2000L;
 
     private final ContainerCacheMode cacheMode;
+    private final InteractionSourceTracker sourceTracker;
+    private final GuiSessionManager sessionManager;
+
+    /** Only used for timeout detection — not for intercepting packets. */
     @Nullable
-    private GuiSession pendingRestoreSession;
+    private GuiSessionId pendingRestoreSessionId;
     private long pendingRestoreTimestamp;
 
-    public ContainerRestoreHandler(ContainerCacheMode cacheMode) {
+    public ContainerRestoreHandler(ContainerCacheMode cacheMode,
+                                   InteractionSourceTracker sourceTracker,
+                                   GuiSessionManager sessionManager) {
         this.cacheMode = cacheMode;
+        this.sourceTracker = sourceTracker;
+        this.sessionManager = sessionManager;
     }
 
     /**
      * Attempt to restore a stale tab by re-interacting with its source.
-     * Returns true if the interaction was initiated, false if the source is unreachable.
+     * Sets sourceTracker pending so that the vanilla SPacketOpenWindow flow
+     * will match the new screen back to the existing stale session via
+     * registerOrReuseSession.
      */
     public boolean requestRestore(GuiSession session) {
         if (!session.isStale()) {
-            return false; // Not stale, nothing to restore
+            return false;
         }
         GuiSessionSource source = session.getSource();
         if (source == null) {
-            return false; // No source, can't restore
+            return false;
+        }
+        // Reject if another restore is already in flight
+        if (pendingRestoreSessionId != null
+                && System.currentTimeMillis() - pendingRestoreTimestamp <= RESTORE_TIMEOUT_MS) {
+            return false;
         }
 
         Minecraft mc = Minecraft.getMinecraft();
@@ -59,20 +75,22 @@ public final class ContainerRestoreHandler {
         if (world == null) {
             return false;
         }
-
-        // Check dimension matches
         if (player.dimension != blockSource.getDimensionId()) {
             return false;
         }
 
-        // For HYBRID mode, set pending restore so MixinNetHandlerPlayClient can intercept
-        if (cacheMode == ContainerCacheMode.HYBRID) {
-            pendingRestoreSession = session;
-            pendingRestoreTimestamp = System.currentTimeMillis();
-        }
+        // Record pending for timeout detection
+        pendingRestoreSessionId = session.getId();
+        pendingRestoreTimestamp = System.currentTimeMillis();
 
-        // Send the interaction packet directly to bypass client-side reach check.
-        // Deferred to RemoteInteractionHelper to avoid loading network classes eagerly.
+        // Set source so vanilla's displayGuiScreen → onBeforeDisplay → registerOrReuseSession
+        // will match the new screen back to this stale session.
+        sourceTracker.setPendingForRestore(blockSource, System.currentTimeMillis());
+
+        // Bypass server-side distance check for integrated server
+        GuiBrowserRuntime.getInstance().setBypassServerDistanceCheck(true);
+
+        // Send interaction packet directly (bypasses client-side reach check)
         RemoteInteractionHelper.sendBlockInteraction(player, pos);
         return true;
     }
@@ -83,42 +101,42 @@ public final class ContainerRestoreHandler {
         if (world == null) {
             return false;
         }
-
         Entity entity = world.getEntityByID(entitySource.getEntityId());
         if (entity == null) {
-            return false; // Entity no longer exists
+            return false;
         }
 
-        // For HYBRID mode, set pending restore
-        if (cacheMode == ContainerCacheMode.HYBRID) {
-            pendingRestoreSession = session;
-            pendingRestoreTimestamp = System.currentTimeMillis();
-        }
+        pendingRestoreSessionId = session.getId();
+        pendingRestoreTimestamp = System.currentTimeMillis();
 
-        // Simulate interaction with entity
+        sourceTracker.setPendingForRestore(entitySource, System.currentTimeMillis());
+
         mc.playerController.interactWithEntity(player, entity, EnumHand.MAIN_HAND);
         return true;
     }
 
-    // -- HYBRID mode coordination (used by MixinNetHandlerPlayClient) --
-
-    public boolean isPendingRestore() {
-        if (pendingRestoreSession == null) {
-            return false;
+    /**
+     * Called each render tick. If a restore has been pending longer than the
+     * timeout and the session is still stale, show a failure toast.
+     */
+    public void tickPendingRestore() {
+        if (pendingRestoreSessionId == null) {
+            return;
         }
+        // Check if restore already succeeded (session no longer stale)
+        GuiSession session = sessionManager.findSession(pendingRestoreSessionId);
+        if (session != null && !session.isStale()) {
+            pendingRestoreSessionId = null;
+            return;
+        }
+        // Check timeout
         if (System.currentTimeMillis() - pendingRestoreTimestamp > RESTORE_TIMEOUT_MS) {
-            pendingRestoreSession = null;
-            return false;
+            GuiSessionId id = pendingRestoreSessionId;
+            pendingRestoreSessionId = null;
+            GuiBrowserRuntime.getInstance().setBypassServerDistanceCheck(false);
+            if (session != null) {
+                GuiRestoreFailedToast.show("Restore timed out: " + session.getTitle());
+            }
         }
-        return true;
-    }
-
-    @Nullable
-    public GuiSession getPendingRestoreSession() {
-        return pendingRestoreSession;
-    }
-
-    public void clearPendingRestore() {
-        pendingRestoreSession = null;
     }
 }

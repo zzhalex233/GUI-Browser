@@ -70,8 +70,14 @@ public abstract class MixinMinecraft {
 
     @Inject(method = "displayGuiScreen", at = @At("RETURN"))
     private void guibrowser$afterDisplay(@Nullable GuiScreen guiScreenIn, CallbackInfo callbackInfo) {
-        GuiBrowserRuntime.getInstance().getLifecycleBridge().onAfterDisplay(currentScreen);
-        GuiBrowserRuntime.getInstance().setSuppressClosePacket(false);
+        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
+        runtime.getLifecycleBridge().onAfterDisplay(currentScreen);
+        runtime.setSuppressClosePacket(false);
+        runtime.setBypassServerDistanceCheck(false);
+        runtime.setKeepContainerOpen(
+            currentScreen instanceof net.minecraft.client.gui.inventory.GuiContainer
+            && runtime.getSessionManager().findSessionByScreen(currentScreen) != null
+        );
         guibrowser$transitionDecision = null;
     }
 }

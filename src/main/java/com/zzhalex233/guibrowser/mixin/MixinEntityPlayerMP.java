@@ -17,7 +17,7 @@ public abstract class MixinEntityPlayerMP {
                  target = "Lnet/minecraft/inventory/Container;canInteractWith(Lnet/minecraft/entity/player/EntityPlayer;)Z")
     )
     private boolean guibrowser$bypassDistanceCheck(Container container, EntityPlayer player) {
-        if (GuiBrowserRuntime.getInstance().getSessionManager().getForegroundSession() != null) {
+        if (GuiBrowserRuntime.getInstance().isKeepContainerOpen()) {
             return true;
         }
         return container.canInteractWith(player);

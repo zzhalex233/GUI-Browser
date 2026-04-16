@@ -30,6 +30,8 @@ public final class GuiBrowserRuntime {
     private final ContainerRestoreHandler restoreHandler;
 
     private boolean suppressClosePacket;
+    private volatile boolean bypassServerDistanceCheck;
+    private volatile boolean keepContainerOpen;
 
     private GuiBrowserRuntime(BrowserConfig config) {
         this(config, null);
@@ -43,7 +45,8 @@ public final class GuiBrowserRuntime {
         this.bookmarkStore = config.isEnableBookmarks() ? new GuiBookmarkStore() : null;
         this.sessionManager = new GuiSessionManager(historyStore, bookmarkStore);
         this.sourceTracker = new InteractionSourceTracker();
-        ContainerRestoreHandler restoreHandler = new ContainerRestoreHandler(config.getContainerCacheMode());
+        ContainerRestoreHandler restoreHandler = new ContainerRestoreHandler(
+            config.getContainerCacheMode(), sourceTracker, sessionManager);
         this.restoreHandler = restoreHandler;
         this.lifecycleBridge = new GuiLifecycleBridge(sessionManager, sourceTracker, config.getContainerCacheMode());
         this.chromeController = new GuiChromeOverlayController(sessionManager, restoreHandler);
@@ -111,6 +114,22 @@ public final class GuiBrowserRuntime {
 
     public void setSuppressClosePacket(boolean value) {
         this.suppressClosePacket = value;
+    }
+
+    public boolean isBypassServerDistanceCheck() {
+        return bypassServerDistanceCheck;
+    }
+
+    public void setBypassServerDistanceCheck(boolean value) {
+        this.bypassServerDistanceCheck = value;
+    }
+
+    public boolean isKeepContainerOpen() {
+        return keepContainerOpen;
+    }
+
+    public void setKeepContainerOpen(boolean value) {
+        this.keepContainerOpen = value;
     }
 
     public InteractionSourceTracker getSourceTracker() {

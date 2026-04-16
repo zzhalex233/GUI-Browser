@@ -29,6 +29,7 @@ public abstract class MixinGuiScreen {
         ScaledResolution resolution = new ScaledResolution(Minecraft.getMinecraft());
         runtime.getChromeRenderer().render(resolution, mouseX, mouseY,
                 Minecraft.getMinecraft().fontRenderer);
+        runtime.getRestoreHandler().tickPendingRestore();
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
@@ -60,10 +61,9 @@ public abstract class MixinGuiScreen {
                         if (result == TabSwitchResult.DIRECT_SWITCH) {
                             GuiScreen targetScreen = runtime.getSessionManager().getSession(tabId).getScreen();
                             if (targetScreen != self) {
-                                Minecraft mc = Minecraft.getMinecraft();
-                                mc.currentScreen = targetScreen;
-                                ScaledResolution sr = new ScaledResolution(mc);
-                                targetScreen.setWorldAndResolution(mc, sr.getScaledWidth(), sr.getScaledHeight());
+                                runtime.setSuppressClosePacket(true);
+                                Minecraft.getMinecraft().displayGuiScreen(targetScreen);
+                                runtime.setSuppressClosePacket(false);
                             }
                         }
                     }
