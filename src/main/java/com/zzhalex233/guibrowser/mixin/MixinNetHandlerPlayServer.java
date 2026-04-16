@@ -1,19 +1,24 @@
 package com.zzhalex233.guibrowser.mixin;
 
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.NetHandlerPlayServer;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.Constant;
-import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(NetHandlerPlayServer.class)
 public abstract class MixinNetHandlerPlayServer {
 
-    @ModifyConstant(method = "processTryUseItemOnBlock", constant = @Constant(doubleValue = 64.0D))
-    private double guibrowser$expandInteractionRange(double original) {
+    @Redirect(
+        method = "processTryUseItemOnBlock",
+        at = @At(value = "INVOKE",
+                 target = "Lnet/minecraft/entity/player/EntityPlayerMP;getDistanceSq(DDD)D")
+    )
+    private double guibrowser$bypassDistanceCheck(EntityPlayerMP player, double x, double y, double z) {
         if (GuiBrowserRuntime.getInstance().isBypassServerDistanceCheck()) {
-            return Double.MAX_VALUE;
+            return 0.0D;
         }
-        return original;
+        return player.getDistanceSq(x, y, z);
     }
 }

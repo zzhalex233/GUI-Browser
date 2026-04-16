@@ -5,7 +5,6 @@ import com.zzhalex233.guibrowser.client.session.GuiLifecycleBridge;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.client.event.GuiOpenEvent;
-import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -25,10 +24,6 @@ public abstract class MixinMinecraft {
 
     @Unique
     private GuiLifecycleBridge.TransitionDecision guibrowser$transitionDecision;
-    @Unique
-    private int guibrowser$savedMouseX;
-    @Unique
-    private int guibrowser$savedMouseY;
 
     @Inject(
         method = "displayGuiScreen",
@@ -39,11 +34,6 @@ public abstract class MixinMinecraft {
         guibrowser$transitionDecision = GuiBrowserRuntime.getInstance().getLifecycleBridge().onBeforeDisplay(current, guiScreenIn, false);
         if (guibrowser$transitionDecision != null && guibrowser$transitionDecision.shouldSuppressCurrentClose()) {
             GuiBrowserRuntime.getInstance().setSuppressClosePacket(true);
-        }
-        // Suppress mouse warp when switching between tracked sessions
-        if (current != null && guiScreenIn != null
-                && GuiBrowserRuntime.getInstance().getSessionManager().findSessionByScreen(current) != null) {
-            GuiBrowserRuntime.getInstance().setSuppressMouseWarp(true);
         }
     }
 
@@ -78,15 +68,6 @@ public abstract class MixinMinecraft {
         }
     }
 
-    @Inject(method = "displayGuiScreen", at = @At("HEAD"))
-    private void guibrowser$saveMousePosition(@Nullable GuiScreen guiScreenIn, CallbackInfo ci) {
-        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
-        if (runtime.isSuppressMouseWarp()) {
-            guibrowser$savedMouseX = Mouse.getX();
-            guibrowser$savedMouseY = Mouse.getY();
-        }
-    }
-
     @Inject(method = "displayGuiScreen", at = @At("RETURN"))
     private void guibrowser$afterDisplay(@Nullable GuiScreen guiScreenIn, CallbackInfo callbackInfo) {
         GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
@@ -97,10 +78,6 @@ public abstract class MixinMinecraft {
             currentScreen instanceof net.minecraft.client.gui.inventory.GuiContainer
             && runtime.getSessionManager().findSessionByScreen(currentScreen) != null
         );
-        if (runtime.isSuppressMouseWarp()) {
-            Mouse.setCursorPosition(guibrowser$savedMouseX, guibrowser$savedMouseY);
-            runtime.setSuppressMouseWarp(false);
-        }
         guibrowser$transitionDecision = null;
     }
 }
