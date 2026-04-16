@@ -79,7 +79,7 @@ class GuiLifecycleBridgeTest {
     }
 
     @Test
-    void hidingSessionMarksStale() {
+    void hidingSessionOnEscDoesNotMarkStale() {
         GuiSessionManager manager = new GuiSessionManager();
         InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
@@ -91,7 +91,30 @@ class GuiLifecycleBridgeTest {
         GuiSession session = manager.getForegroundSession();
         assertFalse(session.isStale());
 
+        // ESC close (incoming == null) should NOT mark stale in HYBRID mode
         bridge.onBeforeDisplay(container, null, false);
+
+        assertTrue(session.isHidden());
+        assertFalse(session.isStale());
+    }
+
+    @Test
+    void hidingSessionOnSwitchMarksStale() {
+        GuiSessionManager manager = new GuiSessionManager();
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer containerA = new GuiContainer() {};
+        GuiContainer containerB = new GuiContainer() {};
+        GuiSessionSource sourceA = blockSource(1, 2, 3);
+        GuiSessionSource sourceB = blockSource(4, 5, 6);
+
+        loadSource(sourceTracker, sourceA);
+        bridge.onBeforeDisplay(null, containerA, false);
+        GuiSession session = manager.getForegroundSession();
+
+        // Switching to another GUI (incoming != null) should mark stale
+        loadSource(sourceTracker, sourceB);
+        bridge.onBeforeDisplay(containerA, containerB, false);
 
         assertTrue(session.isHidden());
         assertTrue(session.isStale());
@@ -209,6 +232,7 @@ class GuiLifecycleBridgeTest {
         // HYBRID mode suppresses close for existing sessions
         assertTrue(decision.shouldSuppressCurrentClose());
         assertEquals(session.getId(), decision.getHiddenSessionId());
-        assertTrue(session.isStale());
+        // ESC close (incoming == null) does not mark stale
+        assertFalse(session.isStale());
     }
 }

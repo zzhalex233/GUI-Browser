@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiScreen;
 import com.zzhalex233.guibrowser.client.history.GuiBookmarkStore;
 import com.zzhalex233.guibrowser.client.history.GuiHistoryEntry;
 import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
+import com.zzhalex233.guibrowser.client.session.GuiSessionSourceKey;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,7 +72,24 @@ public final class GuiSessionManager {
             sourceIndex.put(source, session.getId());
         }
 
-        recordHistory(session.getTitle(), GuiHistoryEntry.Action.OPENED);
+        recordHistory(session.getTitle(), GuiHistoryEntry.Action.OPENED, session.getSource());
+        return session;
+    }
+
+    public GuiSession registerStaleSession(String title, GuiSessionSource source) {
+        Objects.requireNonNull(source, "source");
+        // Skip if a session with this source already exists
+        GuiSessionId existingId = sourceIndex.get(source);
+        if (existingId != null && sessions.containsKey(existingId)) {
+            return sessions.get(existingId);
+        }
+        long now = System.currentTimeMillis();
+        GuiScreen placeholder = new StaleTabPlaceholderScreen(title);
+        GuiSession session = new GuiSession(GuiSessionId.create(), placeholder, title, now, source);
+        session.markStale();
+        session.markHidden();
+        sessions.put(session.getId(), session);
+        sourceIndex.put(source, session.getId());
         return session;
     }
 
@@ -110,7 +128,7 @@ public final class GuiSessionManager {
         if (id.equals(foregroundSessionId)) {
             foregroundSessionId = null;
         }
-        recordHistory(session.getTitle(), GuiHistoryEntry.Action.HIDDEN);
+        recordHistory(session.getTitle(), GuiHistoryEntry.Action.HIDDEN, session.getSource());
     }
 
     public void activateSession(GuiSessionId id) {
@@ -123,7 +141,7 @@ public final class GuiSessionManager {
         session.markForeground(now);
         foregroundSessionId = id;
         lastActivatedSessionId = id;
-        recordHistory(session.getTitle(), GuiHistoryEntry.Action.ACTIVATED);
+        recordHistory(session.getTitle(), GuiHistoryEntry.Action.ACTIVATED, session.getSource());
     }
 
     public void destroySession(GuiSessionId id) {
@@ -140,7 +158,7 @@ public final class GuiSessionManager {
         if (id.equals(lastActivatedSessionId)) {
             lastActivatedSessionId = findMostRecentlyActivatedSessionId();
         }
-        recordHistory(removed.getTitle(), GuiHistoryEntry.Action.DESTROYED);
+        recordHistory(removed.getTitle(), GuiHistoryEntry.Action.DESTROYED, removed.getSource());
     }
 
     public List<GuiSession> listVisibleTabs() {
@@ -173,7 +191,25 @@ public final class GuiSessionManager {
             return;
         }
         GuiSession session = requireSession(id);
-        bookmarkStore.toggleBookmark(id, session.getTitle(), session.getScreen().getClass().getName());
+        GuiSessionSource source = session.getSource();
+        if (source == null) {
+            return;
+        }
+        GuiSessionSourceKey key = GuiSessionSourceKey.fromSource(source);
+        if (key == null) {
+            return;
+        }
+        bookmarkStore.toggleBookmark(key, session.getTitle(), session.getScreen().getClass().getName());
+    }
+
+    public boolean isSessionBookmarked(GuiSessionId id) {
+        if (bookmarkStore == null) return false;
+        GuiSession session = findSession(id);
+        if (session == null) return false;
+        GuiSessionSource source = session.getSource();
+        if (source == null) return false;
+        GuiSessionSourceKey key = GuiSessionSourceKey.fromSource(source);
+        return key != null && bookmarkStore.isBookmarked(key);
     }
 
     public GuiBookmarkStore getBookmarkStore() {
@@ -206,8 +242,13 @@ public final class GuiSessionManager {
     }
 
     private void recordHistory(String title, GuiHistoryEntry.Action action) {
+        recordHistory(title, action, null);
+    }
+
+    private void recordHistory(String title, GuiHistoryEntry.Action action, @Nullable GuiSessionSource source) {
         if (historyStore != null) {
-            historyStore.record(title, action);
+            GuiSessionSourceKey sourceKey = source != null ? GuiSessionSourceKey.fromSource(source) : null;
+            historyStore.record(title, action, sourceKey);
         }
     }
 }

@@ -1,10 +1,12 @@
 package com.zzhalex233.guibrowser.client.session;
 
 import com.zzhalex233.guibrowser.client.session.GuiTrackingPolicy.TrackingDecision;
+import com.zzhalex233.guibrowser.client.persistence.TabPersistenceManager;
 import com.zzhalex233.guibrowser.config.ContainerCacheMode;
 import net.minecraft.client.gui.GuiScreen;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.util.Objects;
 
 public final class GuiLifecycleBridge {
@@ -12,15 +14,28 @@ public final class GuiLifecycleBridge {
     @Nullable
     private final InteractionSourceTracker sourceTracker;
     private final ContainerCacheMode cacheMode;
+    @Nullable
+    private File dataDir;
+    private boolean savedForUnload;
 
     public GuiLifecycleBridge(GuiSessionManager manager) {
-        this(manager, null, ContainerCacheMode.HYBRID);
+        this(manager, null, ContainerCacheMode.HYBRID, null);
     }
 
     public GuiLifecycleBridge(GuiSessionManager manager, @Nullable InteractionSourceTracker sourceTracker, ContainerCacheMode cacheMode) {
+        this(manager, sourceTracker, cacheMode, null);
+    }
+
+    public GuiLifecycleBridge(GuiSessionManager manager, @Nullable InteractionSourceTracker sourceTracker,
+                              ContainerCacheMode cacheMode, @Nullable File dataDir) {
         this.manager = Objects.requireNonNull(manager, "manager");
         this.sourceTracker = sourceTracker;
         this.cacheMode = Objects.requireNonNull(cacheMode, "cacheMode");
+        this.dataDir = dataDir;
+    }
+
+    public void setDataDir(@Nullable File dataDir) {
+        this.dataDir = dataDir;
     }
 
     public TransitionDecision onBeforeDisplay(@Nullable GuiScreen current, @Nullable GuiScreen incoming, boolean explicitDestroy) {
@@ -41,7 +56,9 @@ public final class GuiLifecycleBridge {
                     manager.destroySession(currentSession.getId());
                 } else {
                     manager.hideSession(currentSession.getId());
-                    currentSession.markStale();
+                    if (incoming != null) {
+                        currentSession.markStale();
+                    }
                     hiddenSessionId = currentSession.getId();
                     suppressCurrentClose = cacheMode == ContainerCacheMode.HYBRID;
                 }
@@ -96,10 +113,24 @@ public final class GuiLifecycleBridge {
     }
 
     public void onWorldUnload() {
+        if (dataDir != null && !savedForUnload) {
+            savedForUnload = true;
+            TabPersistenceManager.save(manager.listAllSessions(), dataDir);
+            if (manager.getHistoryStore() != null) {
+                manager.getHistoryStore().save(dataDir);
+            }
+            if (manager.getBookmarkStore() != null) {
+                manager.getBookmarkStore().save(dataDir);
+            }
+        }
         manager.clearForWorldUnload();
         if (sourceTracker != null) {
             sourceTracker.clear();
         }
+    }
+
+    public void resetSaveGuard() {
+        savedForUnload = false;
     }
 
     public void destroySessionFromTab(GuiSessionId id) {

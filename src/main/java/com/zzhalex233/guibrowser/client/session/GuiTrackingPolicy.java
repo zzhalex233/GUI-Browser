@@ -23,7 +23,8 @@ public final class GuiTrackingPolicy {
         "net.minecraft.client.gui.GuiGameOver",
         "net.minecraft.client.gui.GuiMemoryErrorScreen",
         "net.minecraft.client.gui.GuiScreenWorking",
-        "net.minecraft.client.multiplayer.GuiConnecting"
+        "net.minecraft.client.multiplayer.GuiConnecting",
+        "net.minecraft.client.gui.inventory.GuiContainerCreative"
     );
 
     private static final Set<String> TRINKET_PACKAGE_PREFIXES = Set.of(

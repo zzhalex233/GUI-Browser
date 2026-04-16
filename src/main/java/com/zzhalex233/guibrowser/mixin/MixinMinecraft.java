@@ -45,6 +45,29 @@ public abstract class MixinMinecraft {
         screen.onGuiClosed();
     }
 
+    /**
+     * Fallback: when currentScreen is null (player in-game, no GUI open),
+     * onGuiClosed() is never called, so guibrowser$beforeDisplay never fires.
+     * Register the session here — BEFORE setWorldAndResolution calls initGui —
+     * so that MixinGuiContainer can apply the guiTop offset.
+     */
+    @Inject(
+        method = "displayGuiScreen",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiScreen;setWorldAndResolution(Lnet/minecraft/client/Minecraft;II)V")
+    )
+    private void guibrowser$ensureSessionBeforeInit(@Nullable GuiScreen guiScreenIn, CallbackInfo ci) {
+        if (guibrowser$transitionDecision != null) {
+            return;
+        }
+        if (guiScreenIn != null) {
+            guibrowser$transitionDecision = GuiBrowserRuntime.getInstance().getLifecycleBridge()
+                .onBeforeDisplay(null, guiScreenIn, false);
+            if (guibrowser$transitionDecision != null && guibrowser$transitionDecision.shouldSuppressCurrentClose()) {
+                GuiBrowserRuntime.getInstance().setSuppressClosePacket(true);
+            }
+        }
+    }
+
     @Inject(method = "displayGuiScreen", at = @At("RETURN"))
     private void guibrowser$afterDisplay(@Nullable GuiScreen guiScreenIn, CallbackInfo callbackInfo) {
         GuiBrowserRuntime.getInstance().getLifecycleBridge().onAfterDisplay(currentScreen);

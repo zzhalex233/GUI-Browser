@@ -1,20 +1,36 @@
 package com.zzhalex233.guibrowser.client.event;
 
+import com.zzhalex233.guibrowser.client.persistence.TabPersistenceManager;
+import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
 import com.zzhalex233.guibrowser.client.session.GuiLifecycleBridge;
+import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
 import com.zzhalex233.guibrowser.client.session.InteractionSourceTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.server.integrated.IntegratedServer;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 
+import javax.annotation.Nullable;
+
 public final class ClientForgeEventHandler {
     private final GuiLifecycleBridge lifecycleBridge;
     private final InteractionSourceTracker sourceTracker;
+    @Nullable
+    private final GuiSessionManager sessionManager;
 
     public ClientForgeEventHandler(GuiLifecycleBridge lifecycleBridge, InteractionSourceTracker sourceTracker) {
+        this(lifecycleBridge, sourceTracker, null);
+    }
+
+    public ClientForgeEventHandler(GuiLifecycleBridge lifecycleBridge, InteractionSourceTracker sourceTracker,
+                                   @Nullable GuiSessionManager sessionManager) {
         this.lifecycleBridge = lifecycleBridge;
         this.sourceTracker = sourceTracker;
+        this.sessionManager = sessionManager;
     }
 
     @SubscribeEvent
@@ -27,6 +43,37 @@ public final class ClientForgeEventHandler {
     @SubscribeEvent
     public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
         lifecycleBridge.onWorldUnload();
+    }
+
+    @SubscribeEvent
+    public void onClientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
+        Minecraft mc = Minecraft.getMinecraft();
+        mc.addScheduledTask(() -> {
+            GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
+            String worldId = deriveWorldId(mc);
+            if (worldId != null) {
+                runtime.updateDataDirForWorld(worldId);
+            }
+            if (sessionManager != null && runtime.getDataDir() != null) {
+                TabPersistenceManager.restoreAsStale(sessionManager, runtime.getDataDir());
+            }
+        });
+    }
+
+    private static String deriveWorldId(Minecraft mc) {
+        IntegratedServer server = mc.getIntegratedServer();
+        if (server != null) {
+            return sanitizeDirName(server.getFolderName());
+        }
+        ServerData serverData = mc.getCurrentServerData();
+        if (serverData != null && serverData.serverIP != null) {
+            return sanitizeDirName(serverData.serverIP);
+        }
+        return null;
+    }
+
+    private static String sanitizeDirName(String name) {
+        return name.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
     @SubscribeEvent

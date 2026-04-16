@@ -2,7 +2,10 @@ package com.zzhalex233.guibrowser.client.history;
 
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
+import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
+import com.zzhalex233.guibrowser.client.session.GuiSessionSourceKey;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.util.math.BlockPos;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -12,16 +15,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GuiBookmarkStoreTest {
 
+    private static GuiSessionSource testSource(int x) {
+        return new GuiSessionSource.BlockSource(new BlockPos(x, 64, 0), 0);
+    }
+
     @Test
     void bookmarkingActiveSessionMarksItPinnedWithoutDestroyingInstance() {
         GuiBookmarkStore store = new GuiBookmarkStore();
         GuiSessionManager manager = new GuiSessionManager(new GuiHistoryStore(), store);
-        GuiSession session = manager.registerOpenedSession(new GuiScreen() {
-        }, "Chat");
+        GuiSession session = manager.registerOrReuseSession(new GuiScreen() {
+        }, "Chat", testSource(1));
 
         manager.toggleBookmark(session.getId());
 
-        assertTrue(store.isBookmarked(session.getId()));
+        assertTrue(manager.isSessionBookmarked(session.getId()));
         assertSame(session.getScreen(), manager.getForegroundSession().getScreen());
     }
 
@@ -29,25 +36,26 @@ class GuiBookmarkStoreTest {
     void togglingBookmarkTwiceRemovesIt() {
         GuiBookmarkStore store = new GuiBookmarkStore();
         GuiSessionManager manager = new GuiSessionManager(new GuiHistoryStore(), store);
-        GuiSession session = manager.registerOpenedSession(new GuiScreen() {
-        }, "Chat");
+        GuiSession session = manager.registerOrReuseSession(new GuiScreen() {
+        }, "Chat", testSource(2));
 
         manager.toggleBookmark(session.getId());
         manager.toggleBookmark(session.getId());
 
-        assertFalse(store.isBookmarked(session.getId()));
+        assertFalse(manager.isSessionBookmarked(session.getId()));
     }
 
     @Test
     void bookmarkStoreRecordsTitle() {
         GuiBookmarkStore store = new GuiBookmarkStore();
         GuiSessionManager manager = new GuiSessionManager(new GuiHistoryStore(), store);
-        GuiSession session = manager.registerOpenedSession(new GuiScreen() {
-        }, "My Chest");
+        GuiSession session = manager.registerOrReuseSession(new GuiScreen() {
+        }, "My Chest", testSource(3));
 
         manager.toggleBookmark(session.getId());
 
-        GuiBookmarkEntry entry = store.allBookmarks().get(session.getId());
+        GuiSessionSourceKey key = GuiSessionSourceKey.fromSource(session.getSource());
+        GuiBookmarkEntry entry = store.allBookmarks().get(key);
         assertEquals("My Chest", entry.getSessionTitle());
     }
 
@@ -55,8 +63,8 @@ class GuiBookmarkStoreTest {
     void worldUnloadClearsBookmarks() {
         GuiBookmarkStore store = new GuiBookmarkStore();
         GuiSessionManager manager = new GuiSessionManager(new GuiHistoryStore(), store);
-        GuiSession session = manager.registerOpenedSession(new GuiScreen() {
-        }, "Chat");
+        GuiSession session = manager.registerOrReuseSession(new GuiScreen() {
+        }, "Chat", testSource(4));
         manager.toggleBookmark(session.getId());
 
         manager.clearForWorldUnload();
@@ -67,17 +75,16 @@ class GuiBookmarkStoreTest {
     @Test
     void directStoreOperationsWork() {
         GuiBookmarkStore store = new GuiBookmarkStore();
-        com.zzhalex233.guibrowser.client.session.GuiSessionId id =
-                com.zzhalex233.guibrowser.client.session.GuiSessionId.create();
+        GuiSessionSourceKey key = new GuiSessionSourceKey.BlockKey(100, 64, 200, 0);
 
-        store.addBookmark(id, "Test", "TestClass");
+        store.addBookmark(key, "Test", "TestClass");
 
-        assertTrue(store.isBookmarked(id));
+        assertTrue(store.isBookmarked(key));
         assertEquals(1, store.size());
 
-        store.removeBookmark(id);
+        store.removeBookmark(key);
 
-        assertFalse(store.isBookmarked(id));
+        assertFalse(store.isBookmarked(key));
         assertEquals(0, store.size());
     }
 }

@@ -4,6 +4,7 @@ import com.zzhalex233.guibrowser.client.chrome.GuiChromeOverlayController;
 import com.zzhalex233.guibrowser.client.chrome.GuiChromeRenderer;
 import com.zzhalex233.guibrowser.client.chrome.GuiChromeTarget;
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
+import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionId;
 
 import net.minecraft.client.Minecraft;
@@ -57,13 +58,21 @@ public abstract class MixinGuiScreen {
                         controller.handleTabLeftClick(tabId);
                         GuiScreen targetScreen = runtime.getSessionManager().getSession(tabId).getScreen();
                         if (targetScreen != self) {
-                            Minecraft.getMinecraft().displayGuiScreen(targetScreen);
+                            Minecraft mc = Minecraft.getMinecraft();
+                            mc.currentScreen = targetScreen;
+                            ScaledResolution sr = new ScaledResolution(mc);
+                            targetScreen.setWorldAndResolution(mc, sr.getScaledWidth(), sr.getScaledHeight());
                         }
                     }
                 } else if (mouseButton == 2) {
                     GuiSessionId tabId = controller.getSessionIdForTabIndex(target.getTabIndex());
                     if (tabId != null) {
+                        GuiSession closedSession = runtime.getSessionManager().findSession(tabId);
+                        boolean isCurrentScreen = closedSession != null && closedSession.getScreen() == self;
                         controller.handleTabMiddleClick(tabId);
+                        if (isCurrentScreen) {
+                            Minecraft.getMinecraft().displayGuiScreen(null);
+                        }
                     }
                 }
                 break;
@@ -71,18 +80,25 @@ public abstract class MixinGuiScreen {
                 if (mouseButton == 0) {
                     GuiSessionId tabId = controller.getSessionIdForTabIndex(target.getTabIndex());
                     if (tabId != null) {
+                        GuiSession closedSession = runtime.getSessionManager().findSession(tabId);
+                        boolean isCurrentScreen = closedSession != null && closedSession.getScreen() == self;
                         controller.handleTabMiddleClick(tabId);
+                        if (isCurrentScreen) {
+                            Minecraft.getMinecraft().displayGuiScreen(null);
+                        }
                     }
                 }
                 break;
             case BOOKMARK_BUTTON:
                 if (mouseButton == 0) {
-                    controller.handleBookmarkButtonClick();
+                    controller.handleBookmarkButtonClick(self);
+                } else if (mouseButton == 1) {
+                    controller.handleBookmarkButtonRightClick(self);
                 }
                 break;
             case HISTORY_BUTTON:
                 if (mouseButton == 0) {
-                    controller.handleHistoryButtonClick();
+                    controller.handleHistoryButtonClick(self);
                 }
                 break;
             default:

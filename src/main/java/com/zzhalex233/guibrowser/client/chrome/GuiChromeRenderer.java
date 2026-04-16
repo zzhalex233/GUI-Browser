@@ -1,5 +1,6 @@
 package com.zzhalex233.guibrowser.client.chrome;
 
+import com.zzhalex233.guibrowser.client.popup.GuiRestoreFailedToast;
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
@@ -51,6 +52,7 @@ public final class GuiChromeRenderer {
         drawTopBar(layout);
         drawTabs(layout, tabs, foreground, hoverTarget, fontRenderer);
         drawButtons(layout, hoverTarget, fontRenderer);
+        drawToast(screenWidth, fontRenderer);
 
         if (depthWasEnabled) {
             GlStateManager.enableDepth();
@@ -138,6 +140,20 @@ public final class GuiChromeRenderer {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed + ellipsis;
+    }
+
+    private void drawToast(int screenWidth, net.minecraft.client.gui.FontRenderer fontRenderer) {
+        if (!GuiRestoreFailedToast.isActive()) return;
+        float alpha = GuiRestoreFailedToast.getAlpha();
+        String msg = GuiRestoreFailedToast.getMessage();
+        int textW = fontRenderer.getStringWidth(msg);
+        int toastW = textW + 12;
+        int toastX = (screenWidth - toastW) / 2;
+        int toastY = GuiChromeLayout.TOP_BAR_HEIGHT + 4;
+        int a = (int) (alpha * 0xDD) << 24;
+        Gui.drawRect(toastX, toastY, toastX + toastW, toastY + 16, a | 0x331111);
+        int textAlpha = (int) (alpha * 255) << 24;
+        fontRenderer.drawString(msg, toastX + 6, toastY + 4, textAlpha | 0xFF6666);
     }
 
     public int getTopBarHeight() {
