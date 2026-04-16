@@ -3,8 +3,7 @@ package com.zzhalex233.guibrowser.client.chrome;
 public final class GuiLayoutState {
 
     public enum LayoutMode {
-        OVERLAY,
-        PUSH_DOWN
+        OVERLAY
     }
 
     private final LayoutMode mode;

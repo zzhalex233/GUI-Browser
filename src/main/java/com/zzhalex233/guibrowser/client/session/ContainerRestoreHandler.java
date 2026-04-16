@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
 
 public final class ContainerRestoreHandler {
 
-    private static final long RESTORE_TIMEOUT_MS = 2000L;
+    private static final long RESTORE_TIMEOUT_MS = 5000L;
 
     private final ContainerCacheMode cacheMode;
     private final InteractionSourceTracker sourceTracker;

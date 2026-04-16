@@ -10,23 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class GuiLayoutPolicyTest {
 
     @Test
-    void regularGuiScreensDefaultToOverlayMode() {
+    void regularGuiScreensUseOverlayMode() {
         GuiLayoutState state = GuiLayoutPolicy.forScreen(new GuiChat(), 320, 240);
         assertEquals(GuiLayoutState.LayoutMode.OVERLAY, state.getMode());
     }
 
     @Test
-    void guiContainersUsePushDownByDefault() {
+    void guiContainersUseOverlayMode() {
         GuiContainer container = new GuiContainer();
         GuiLayoutState state = GuiLayoutPolicy.forScreen(container, 320, 240);
-        assertEquals(GuiLayoutState.LayoutMode.PUSH_DOWN, state.getMode());
-    }
-
-    @Test
-    void pushDownOffsetMatchesTopBarHeight() {
-        GuiContainer container = new GuiContainer();
-        GuiLayoutState state = GuiLayoutPolicy.forScreen(container, 320, 240);
-        assertEquals(GuiChromeLayout.TOP_BAR_HEIGHT, state.getVerticalOffset());
+        assertEquals(GuiLayoutState.LayoutMode.OVERLAY, state.getMode());
     }
 
     @Test
@@ -36,18 +29,17 @@ class GuiLayoutPolicyTest {
     }
 
     @Test
+    void guiContainerOverlayHasZeroOffset() {
+        GuiContainer container = new GuiContainer();
+        GuiLayoutState state = GuiLayoutPolicy.forScreen(container, 320, 240);
+        assertEquals(0, state.getVerticalOffset());
+    }
+
+    @Test
     void anonymousGuiScreenSubclassUsesOverlay() {
         GuiScreen custom = new GuiScreen() {
         };
         GuiLayoutState state = GuiLayoutPolicy.forScreen(custom, 320, 240);
         assertEquals(GuiLayoutState.LayoutMode.OVERLAY, state.getMode());
-    }
-
-    @Test
-    void anonymousGuiContainerSubclassUsesPushDown() {
-        GuiContainer custom = new GuiContainer() {
-        };
-        GuiLayoutState state = GuiLayoutPolicy.forScreen(custom, 320, 240);
-        assertEquals(GuiLayoutState.LayoutMode.PUSH_DOWN, state.getMode());
     }
 }

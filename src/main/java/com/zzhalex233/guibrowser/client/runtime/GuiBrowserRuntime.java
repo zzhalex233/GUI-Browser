@@ -30,6 +30,7 @@ public final class GuiBrowserRuntime {
     private final ContainerRestoreHandler restoreHandler;
 
     private boolean suppressClosePacket;
+    private boolean suppressMouseWarp;
     private volatile boolean bypassServerDistanceCheck;
     private volatile boolean keepContainerOpen;
 
@@ -114,6 +115,14 @@ public final class GuiBrowserRuntime {
 
     public void setSuppressClosePacket(boolean value) {
         this.suppressClosePacket = value;
+    }
+
+    public boolean isSuppressMouseWarp() {
+        return suppressMouseWarp;
+    }
+
+    public void setSuppressMouseWarp(boolean value) {
+        this.suppressMouseWarp = value;
     }
 
     public boolean isBypassServerDistanceCheck() {
