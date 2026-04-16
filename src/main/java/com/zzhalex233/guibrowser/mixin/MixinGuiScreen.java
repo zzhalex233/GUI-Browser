@@ -1,6 +1,7 @@
 package com.zzhalex233.guibrowser.mixin;
 
 import com.zzhalex233.guibrowser.client.chrome.GuiChromeOverlayController;
+import com.zzhalex233.guibrowser.client.chrome.GuiChromeOverlayController.TabSwitchResult;
 import com.zzhalex233.guibrowser.client.chrome.GuiChromeRenderer;
 import com.zzhalex233.guibrowser.client.chrome.GuiChromeTarget;
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
@@ -55,13 +56,15 @@ public abstract class MixinGuiScreen {
                 if (mouseButton == 0) {
                     GuiSessionId tabId = controller.getSessionIdForTabIndex(target.getTabIndex());
                     if (tabId != null) {
-                        controller.handleTabLeftClick(tabId);
-                        GuiScreen targetScreen = runtime.getSessionManager().getSession(tabId).getScreen();
-                        if (targetScreen != self) {
-                            Minecraft mc = Minecraft.getMinecraft();
-                            mc.currentScreen = targetScreen;
-                            ScaledResolution sr = new ScaledResolution(mc);
-                            targetScreen.setWorldAndResolution(mc, sr.getScaledWidth(), sr.getScaledHeight());
+                        TabSwitchResult result = controller.handleTabLeftClick(tabId);
+                        if (result == TabSwitchResult.DIRECT_SWITCH) {
+                            GuiScreen targetScreen = runtime.getSessionManager().getSession(tabId).getScreen();
+                            if (targetScreen != self) {
+                                Minecraft mc = Minecraft.getMinecraft();
+                                mc.currentScreen = targetScreen;
+                                ScaledResolution sr = new ScaledResolution(mc);
+                                targetScreen.setWorldAndResolution(mc, sr.getScaledWidth(), sr.getScaledHeight());
+                            }
                         }
                     }
                 } else if (mouseButton == 2) {

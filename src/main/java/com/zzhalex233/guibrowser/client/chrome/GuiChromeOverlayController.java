@@ -18,6 +18,8 @@ import java.util.List;
 
 public final class GuiChromeOverlayController {
 
+    public enum TabSwitchResult { DIRECT_SWITCH, RESTORE_INITIATED, FAILED }
+
     private final GuiSessionManager sessionManager;
     @Nullable
     private final ContainerRestoreHandler restoreHandler;
@@ -47,19 +49,35 @@ public final class GuiChromeOverlayController {
         return sessionManager.getForegroundSession();
     }
 
-    public void handleTabLeftClick(GuiSessionId sessionId) {
+    public TabSwitchResult handleTabLeftClick(GuiSessionId sessionId) {
         GuiSession session = sessionManager.findSession(sessionId);
         if (session == null) {
-            return;
+            return TabSwitchResult.FAILED;
         }
-        if (session.isStale() && restoreHandler != null) {
-            boolean restored = restoreHandler.requestRestore(session);
-            if (!restored) {
-                showRestoreFailedToast(session);
-            }
-            return;
+        // Non-container screens don't have server-side windows → always direct switch
+        if (!(session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer)) {
+            sessionManager.activateSession(sessionId);
+            return TabSwitchResult.DIRECT_SWITCH;
         }
-        sessionManager.activateSession(sessionId);
+        // Target is the server's current active window and not stale → direct switch
+        if (sessionId.equals(sessionManager.getLastServerWindowSessionId()) && !session.isStale()) {
+            sessionManager.activateSession(sessionId);
+            return TabSwitchResult.DIRECT_SWITCH;
+        }
+        // Need to restore (re-interact with block to get fresh server window)
+        if (restoreHandler == null || session.getSource() == null) {
+            showRestoreFailedToast(session);
+            return TabSwitchResult.FAILED;
+        }
+        if (!session.isStale()) {
+            session.markStale();
+        }
+        boolean restored = restoreHandler.requestRestore(session);
+        if (!restored) {
+            showRestoreFailedToast(session);
+            return TabSwitchResult.FAILED;
+        }
+        return TabSwitchResult.RESTORE_INITIATED;
     }
 
     public void handleTabMiddleClick(GuiSessionId sessionId) {

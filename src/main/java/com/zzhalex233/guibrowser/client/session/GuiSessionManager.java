@@ -22,6 +22,7 @@ public final class GuiSessionManager {
     private final GuiBookmarkStore bookmarkStore;
     private GuiSessionId foregroundSessionId;
     private GuiSessionId lastActivatedSessionId;
+    private GuiSessionId lastServerWindowSessionId;
 
     public GuiSessionManager() {
         this(null, null);
@@ -122,6 +123,15 @@ public final class GuiSessionManager {
         return lastActivatedSessionId;
     }
 
+    @Nullable
+    public GuiSessionId getLastServerWindowSessionId() {
+        return lastServerWindowSessionId;
+    }
+
+    public void setLastServerWindowSessionId(@Nullable GuiSessionId id) {
+        this.lastServerWindowSessionId = id;
+    }
+
     public void hideSession(GuiSessionId id) {
         GuiSession session = requireSession(id);
         session.markHidden();
@@ -155,6 +165,9 @@ public final class GuiSessionManager {
         if (id.equals(foregroundSessionId)) {
             foregroundSessionId = null;
         }
+        if (id.equals(lastServerWindowSessionId)) {
+            lastServerWindowSessionId = null;
+        }
         if (id.equals(lastActivatedSessionId)) {
             lastActivatedSessionId = findMostRecentlyActivatedSessionId();
         }
@@ -181,6 +194,7 @@ public final class GuiSessionManager {
         sourceIndex.clear();
         foregroundSessionId = null;
         lastActivatedSessionId = null;
+        lastServerWindowSessionId = null;
         if (bookmarkStore != null) {
             bookmarkStore.clear();
         }

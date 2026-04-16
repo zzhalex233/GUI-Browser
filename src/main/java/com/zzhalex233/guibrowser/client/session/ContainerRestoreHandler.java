@@ -15,7 +15,6 @@ import javax.annotation.Nullable;
 
 public final class ContainerRestoreHandler {
 
-    private static final double MAX_INTERACTION_RANGE = 6.0;
     private static final long RESTORE_TIMEOUT_MS = 5000L;
 
     private final ContainerCacheMode cacheMode;
@@ -67,12 +66,6 @@ public final class ContainerRestoreHandler {
             return false;
         }
 
-        // Check range
-        double distSq = player.getDistanceSq(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-        if (distSq > MAX_INTERACTION_RANGE * MAX_INTERACTION_RANGE) {
-            return false;
-        }
-
         // Check block still exists (not air)
         if (world.isAirBlock(pos)) {
             return false;
@@ -103,12 +96,6 @@ public final class ContainerRestoreHandler {
         Entity entity = world.getEntityByID(entitySource.getEntityId());
         if (entity == null) {
             return false; // Entity no longer exists
-        }
-
-        // Check range
-        double distSq = player.getDistanceSq(entity);
-        if (distSq > MAX_INTERACTION_RANGE * MAX_INTERACTION_RANGE) {
-            return false;
         }
 
         // For HYBRID mode, set pending restore

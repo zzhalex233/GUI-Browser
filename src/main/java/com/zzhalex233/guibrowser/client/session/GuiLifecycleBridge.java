@@ -4,6 +4,7 @@ import com.zzhalex233.guibrowser.client.session.GuiTrackingPolicy.TrackingDecisi
 import com.zzhalex233.guibrowser.client.persistence.TabPersistenceManager;
 import com.zzhalex233.guibrowser.config.ContainerCacheMode;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -80,6 +81,9 @@ public final class GuiLifecycleBridge {
 
                 GuiSession incomingSession = manager.registerOrReuseSession(incoming, null, source);
                 activatedSessionId = incomingSession.getId();
+                if (incoming instanceof GuiContainer) {
+                    manager.setLastServerWindowSessionId(incomingSession.getId());
+                }
             }
         }
 
@@ -108,7 +112,10 @@ public final class GuiLifecycleBridge {
             if (sourceTracker != null) {
                 source = sourceTracker.consumePending(now);
             }
-            manager.registerOrReuseSession(nowVisible, null, source);
+            GuiSession registered = manager.registerOrReuseSession(nowVisible, null, source);
+            if (nowVisible instanceof GuiContainer) {
+                manager.setLastServerWindowSessionId(registered.getId());
+            }
         }
     }
 

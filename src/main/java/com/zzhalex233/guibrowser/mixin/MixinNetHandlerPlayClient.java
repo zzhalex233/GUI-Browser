@@ -14,9 +14,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Mixin(NetHandlerPlayClient.class)
 public abstract class MixinNetHandlerPlayClient {
 
@@ -41,39 +38,42 @@ public abstract class MixinNetHandlerPlayClient {
             cachedScreen.inventorySlots.windowId = packetIn.getWindowId();
             session.clearStale();
             restoreHandler.clearPendingRestore();
+            GuiBrowserRuntime.getInstance().getSessionManager().setLastServerWindowSessionId(session.getId());
             Minecraft.getMinecraft().displayGuiScreen(cachedScreen);
             ci.cancel();
         }
     }
 
     /**
-     * When the server closes a container window, destroy any cached session
-     * that holds a GuiContainer with the matching windowId.
-     * This prevents item duplication via stale cached containers.
+     * When the server closes a container window, mark any cached session
+     * that holds a GuiContainer with the matching windowId as stale.
+     * Skip during pending restore (the old window close is expected).
      */
     @Inject(method = "handleCloseWindow", at = @At("HEAD"))
-    private void guibrowser$destroySessionOnCloseWindow(SPacketCloseWindow packetIn, CallbackInfo ci) {
+    private void guibrowser$markStaleOnCloseWindow(SPacketCloseWindow packetIn, CallbackInfo ci) {
         if (!Minecraft.getMinecraft().isCallingFromMinecraftThread()) {
+            return;
+        }
+        ContainerRestoreHandler restoreHandler = GuiBrowserRuntime.getInstance().getRestoreHandler();
+        if (restoreHandler != null && restoreHandler.isPendingRestore()) {
             return;
         }
         int closedWindowId = ((AccessorSPacketCloseWindow) packetIn).guibrowser$getWindowId();
         GuiSessionManager sessionManager = GuiBrowserRuntime.getInstance().getSessionManager();
-        List<GuiSession> toDestroy = new ArrayList<>();
         for (GuiSession session : sessionManager.listAllSessions()) {
             if (session.getScreen() instanceof GuiContainer) {
                 GuiContainer container = (GuiContainer) session.getScreen();
                 if (container.inventorySlots.windowId == closedWindowId) {
-                    toDestroy.add(session);
-                }
-            }
-        }
-        for (GuiSession session : toDestroy) {
-            boolean wasForeground = session.isForeground();
-            sessionManager.destroySession(session.getId());
-            if (wasForeground) {
-                Minecraft mc = Minecraft.getMinecraft();
-                if (mc.currentScreen == session.getScreen()) {
-                    mc.displayGuiScreen(null);
+                    session.markStale();
+                    if (session.getId().equals(sessionManager.getLastServerWindowSessionId())) {
+                        sessionManager.setLastServerWindowSessionId(null);
+                    }
+                    if (session.isForeground()) {
+                        Minecraft mc = Minecraft.getMinecraft();
+                        if (mc.currentScreen == session.getScreen()) {
+                            mc.displayGuiScreen(null);
+                        }
+                    }
                 }
             }
         }

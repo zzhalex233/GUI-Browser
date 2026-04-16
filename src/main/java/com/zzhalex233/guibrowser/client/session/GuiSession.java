@@ -82,7 +82,7 @@ public final class GuiSession {
         return stale;
     }
 
-    void markStale() {
+    public void markStale() {
         this.stale = true;
     }
 
