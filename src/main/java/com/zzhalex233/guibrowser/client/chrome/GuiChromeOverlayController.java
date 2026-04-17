@@ -11,6 +11,7 @@ import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionId;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
+import com.zzhalex233.guibrowser.client.session.StaleTabPlaceholderScreen;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -54,31 +55,22 @@ public final class GuiChromeOverlayController {
         if (session == null) {
             return TabSwitchResult.FAILED;
         }
-        // Non-container screens (and not placeholder) don't have server-side windows → always direct switch
-        if (!(session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer)
-                && !(session.getScreen() instanceof com.zzhalex233.guibrowser.client.session.StaleTabPlaceholderScreen)) {
-            sessionManager.activateSession(sessionId);
+
+        if (session.getScreen() instanceof StaleTabPlaceholderScreen) {
+            return restorePlaceholderSession(session);
+        }
+
+        sessionManager.activateSession(sessionId);
+        if (!(session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer)) {
             return TabSwitchResult.DIRECT_SWITCH;
         }
-        // Target is the server's current active window and not stale → direct switch
-        if (sessionId.equals(sessionManager.getLastServerWindowSessionId()) && !session.isStale()) {
-            sessionManager.activateSession(sessionId);
-            return TabSwitchResult.DIRECT_SWITCH;
+
+        if (restoreHandler != null
+                && session.getSource() != null
+                && !sessionId.equals(sessionManager.getLastServerWindowSessionId())) {
+            restoreHandler.requestSync(session);
         }
-        // Need to restore (re-interact with block to get fresh server window)
-        if (restoreHandler == null || session.getSource() == null) {
-            showRestoreFailedToast(session);
-            return TabSwitchResult.FAILED;
-        }
-        if (!session.isStale()) {
-            session.markStale();
-        }
-        boolean restored = restoreHandler.requestRestore(session);
-        if (!restored) {
-            showRestoreFailedToast(session);
-            return TabSwitchResult.FAILED;
-        }
-        return TabSwitchResult.RESTORE_INITIATED;
+        return TabSwitchResult.DIRECT_SWITCH;
     }
 
     public void handleTabMiddleClick(GuiSessionId sessionId) {
@@ -143,13 +135,27 @@ public final class GuiChromeOverlayController {
         return tabs.get(tabIndex).getId();
     }
 
+    private TabSwitchResult restorePlaceholderSession(GuiSession session) {
+        if (restoreHandler == null || session.getSource() == null) {
+            showRestoreFailedToast(session);
+            return TabSwitchResult.FAILED;
+        }
+
+        boolean restored = restoreHandler.requestRestore(session);
+        if (!restored) {
+            showRestoreFailedToast(session);
+            return TabSwitchResult.FAILED;
+        }
+        return TabSwitchResult.RESTORE_INITIATED;
+    }
+
     private void showRestoreFailedToast(GuiSession session) {
         GuiSessionSource source = session.getSource();
         String msg;
         if (source instanceof GuiSessionSource.BlockSource) {
-            GuiSessionSource.BlockSource bs = (GuiSessionSource.BlockSource) source;
+            GuiSessionSource.BlockSource blockSource = (GuiSessionSource.BlockSource) source;
             msg = "Cannot reach " + session.getTitle() + " at "
-                + bs.getPos().getX() + ", " + bs.getPos().getY() + ", " + bs.getPos().getZ();
+                + blockSource.getPos().getX() + ", " + blockSource.getPos().getY() + ", " + blockSource.getPos().getZ();
         } else {
             msg = "Cannot restore " + session.getTitle();
         }

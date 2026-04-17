@@ -8,6 +8,7 @@ import com.zzhalex233.guibrowser.client.persistence.JsonPersistence;
 import com.zzhalex233.guibrowser.client.session.ContainerRestoreHandler;
 import com.zzhalex233.guibrowser.client.session.GuiLifecycleBridge;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
+import com.zzhalex233.guibrowser.client.session.GuiSessionSourceValidator;
 import com.zzhalex233.guibrowser.client.session.InteractionSourceTracker;
 import com.zzhalex233.guibrowser.config.BrowserConfig;
 
@@ -28,6 +29,7 @@ public final class GuiBrowserRuntime {
     private final GuiChromeRenderer chromeRenderer;
     private final InteractionSourceTracker sourceTracker;
     private final ContainerRestoreHandler restoreHandler;
+    private final GuiSessionSourceValidator sourceValidator;
 
     private boolean suppressClosePacket;
     private volatile boolean bypassServerDistanceCheck;
@@ -51,6 +53,7 @@ public final class GuiBrowserRuntime {
         this.lifecycleBridge = new GuiLifecycleBridge(sessionManager, sourceTracker, config.getContainerCacheMode());
         this.chromeController = new GuiChromeOverlayController(sessionManager, restoreHandler);
         this.chromeRenderer = new GuiChromeRenderer(chromeController);
+        this.sourceValidator = new GuiSessionSourceValidator(sessionManager);
     }
 
     public void updateDataDirForWorld(String worldId) {
@@ -124,6 +127,11 @@ public final class GuiBrowserRuntime {
         this.bypassServerDistanceCheck = value;
     }
 
+    public void clearRestoreTransientState() {
+        this.bypassServerDistanceCheck = false;
+        this.sourceTracker.clearRestoreLock();
+    }
+
     public boolean isKeepContainerOpen() {
         return keepContainerOpen;
     }
@@ -138,5 +146,9 @@ public final class GuiBrowserRuntime {
 
     public ContainerRestoreHandler getRestoreHandler() {
         return restoreHandler;
+    }
+
+    public GuiSessionSourceValidator getSourceValidator() {
+        return sourceValidator;
     }
 }

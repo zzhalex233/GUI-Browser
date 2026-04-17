@@ -95,4 +95,29 @@ class InteractionSourceTrackerTest {
         tracker.consumePending(1000L);
         assertFalse(tracker.hasPending(1000L));
     }
+
+    @Test
+    void consumingRestorePendingKeepsRestoreLockUntilExplicitlyCleared() {
+        InteractionSourceTracker tracker = new InteractionSourceTracker();
+        GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(1, 2, 3), 0);
+
+        tracker.setPendingForRestore(source, 1000L);
+
+        assertTrue(tracker.hasRestoreLock(1000L));
+        assertEquals(source, tracker.consumePending(1000L));
+        assertTrue(tracker.hasRestoreLock(1000L));
+
+        tracker.clearRestoreLock();
+        assertFalse(tracker.hasRestoreLock(1000L));
+    }
+
+    @Test
+    void normalPendingDoesNotEnableRestoreLock() {
+        InteractionSourceTracker tracker = new InteractionSourceTracker();
+        GuiSessionSource source = new GuiSessionSource.EntitySource(11);
+
+        tracker.setPending(source, 1000L);
+
+        assertFalse(tracker.hasRestoreLock(1000L));
+    }
 }

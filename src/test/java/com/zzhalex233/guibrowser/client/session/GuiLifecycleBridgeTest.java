@@ -1,5 +1,6 @@
 package com.zzhalex233.guibrowser.client.session;
 
+import com.zzhalex233.guibrowser.client.popup.FakePopupScreen;
 import com.zzhalex233.guibrowser.config.ContainerCacheMode;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.util.math.BlockPos;
@@ -99,7 +100,7 @@ class GuiLifecycleBridgeTest {
     }
 
     @Test
-    void hidingSessionOnSwitchMarksStale() {
+    void hidingSessionOnSwitchKeepsContainerLive() {
         GuiSessionManager manager = new GuiSessionManager();
         InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
         GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
@@ -112,12 +113,31 @@ class GuiLifecycleBridgeTest {
         bridge.onBeforeDisplay(null, containerA, false);
         GuiSession session = manager.getForegroundSession();
 
-        // Switching to another GUI (incoming != null) should mark stale
+        // Switching to another tracked GUI should keep the hidden container live.
         loadSource(sourceTracker, sourceB);
         bridge.onBeforeDisplay(containerA, containerB, false);
 
         assertTrue(session.isHidden());
-        assertTrue(session.isStale());
+        assertFalse(session.isStale());
+    }
+
+    @Test
+    void openingPopupDoesNotMarkTrackedSessionStale() {
+        GuiSessionManager manager = new GuiSessionManager();
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer container = new GuiContainer() {};
+        GuiSessionSource source = blockSource(1, 2, 3);
+
+        loadSource(sourceTracker, source);
+        bridge.onBeforeDisplay(null, container, false);
+        GuiSession session = manager.getForegroundSession();
+        assertNotNull(session);
+
+        bridge.onBeforeDisplay(container, new FakePopupScreen(), false);
+
+        assertTrue(session.isHidden());
+        assertFalse(session.isStale());
     }
 
     @Test

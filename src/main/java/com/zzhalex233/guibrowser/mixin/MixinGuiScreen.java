@@ -19,6 +19,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GuiScreen.class)
 public abstract class MixinGuiScreen {
 
+    @Inject(method = "drawScreen", at = @At("HEAD"), cancellable = true)
+    private void guibrowser$pruneInvalidSessions(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
+        GuiScreen self = (GuiScreen) (Object) this;
+        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
+        Minecraft mc = Minecraft.getMinecraft();
+        int currentDimensionId = mc.player == null ? Integer.MIN_VALUE : mc.player.dimension;
+        boolean closedForeground = runtime.getSourceValidator().pruneInvalidSessions(mc.world, currentDimensionId, self);
+        if (closedForeground && runtime.getSessionManager().findSessionByScreen(self) == null) {
+            mc.displayGuiScreen(null);
+            ci.cancel();
+        }
+    }
+
     @Inject(method = "drawScreen", at = @At("RETURN"))
     private void guibrowser$drawChromeOverlay(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         GuiScreen self = (GuiScreen) (Object) this;

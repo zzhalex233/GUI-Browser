@@ -2,12 +2,16 @@ package com.zzhalex233.guibrowser.client.chrome;
 
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
+import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.util.math.BlockPos;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,6 +54,25 @@ class GuiChromeOverlayControllerTest {
         controller.handleTabLeftClick(session.getId());
 
         assertSame(session, manager.getForegroundSession());
+    }
+
+    @Test
+    void leftClickOnLiveContainerTabDirectSwitchesWithoutStaleRestore() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiChromeOverlayController controller = new GuiChromeOverlayController(manager);
+        GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(1, 64, 1), 0);
+        GuiSession first = manager.registerOrReuseSession(new GuiContainer() {
+        }, "First", source);
+        GuiSession second = manager.registerOpenedSession(new GuiScreen() {
+        }, "Second");
+        manager.hideSession(first.getId());
+
+        GuiChromeOverlayController.TabSwitchResult result = controller.handleTabLeftClick(first.getId());
+
+        assertEquals(GuiChromeOverlayController.TabSwitchResult.DIRECT_SWITCH, result);
+        assertSame(first, manager.getForegroundSession());
+        assertFalse(first.isStale());
+        assertSame(second, manager.findSession(second.getId()));
     }
 
     @Test

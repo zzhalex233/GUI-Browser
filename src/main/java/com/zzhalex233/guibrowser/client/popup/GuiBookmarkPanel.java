@@ -7,7 +7,6 @@ import com.zzhalex233.guibrowser.client.session.ContainerRestoreHandler;
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
-import com.zzhalex233.guibrowser.client.session.GuiSessionId;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSourceKey;
 import com.zzhalex233.guibrowser.client.session.StaleTabPlaceholderScreen;
 import net.minecraft.client.Minecraft;
@@ -173,20 +172,19 @@ public class GuiBookmarkPanel extends GuiScreen {
 
         for (GuiSession session : sessionManager.listAllSessions()) {
             if (source.equals(session.getSource())) {
-                if (session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer) {
-                    GuiSessionId lastServer = sessionManager.getLastServerWindowSessionId();
-                    if (session.getId().equals(lastServer) && !session.isStale()) {
-                        Minecraft.getMinecraft().displayGuiScreen(session.getScreen());
-                    } else {
-                        if (!session.isStale()) session.markStale();
-                        Minecraft.getMinecraft().displayGuiScreen(parentScreen);
-                        if (restoreHandler != null) {
-                            boolean restored = restoreHandler.requestRestore(session);
-                            if (!restored) showRestoreToast(entry.getSessionTitle(), source);
-                        }
+                if (session.getScreen() instanceof StaleTabPlaceholderScreen) {
+                    Minecraft.getMinecraft().displayGuiScreen(parentScreen);
+                    if (restoreHandler != null) {
+                        boolean restored = restoreHandler.requestRestore(session);
+                        if (!restored) showRestoreToast(entry.getSessionTitle(), source);
                     }
                 } else {
                     Minecraft.getMinecraft().displayGuiScreen(session.getScreen());
+                    if (session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer
+                            && restoreHandler != null
+                            && !session.getId().equals(sessionManager.getLastServerWindowSessionId())) {
+                        restoreHandler.requestSync(session);
+                    }
                 }
                 return;
             }

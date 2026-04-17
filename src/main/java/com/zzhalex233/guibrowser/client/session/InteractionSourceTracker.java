@@ -38,8 +38,8 @@ public class InteractionSourceTracker {
             return null;
         }
         this.pending = null;
-        this.restoreLock = false;
         if (isExpired(currentTimeMs)) {
+            this.restoreLock = false;
             return null;
         }
         return source;
@@ -47,6 +47,21 @@ public class InteractionSourceTracker {
 
     public boolean hasPending(long currentTimeMs) {
         return this.pending != null && !isExpired(currentTimeMs);
+    }
+
+    public boolean hasRestoreLock(long currentTimeMs) {
+        if (!this.restoreLock) {
+            return false;
+        }
+        if (isExpired(currentTimeMs)) {
+            this.restoreLock = false;
+            return false;
+        }
+        return true;
+    }
+
+    public void clearRestoreLock() {
+        this.restoreLock = false;
     }
 
     public void clear() {

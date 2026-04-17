@@ -46,6 +46,10 @@ public final class GuiLifecycleBridge {
             return new TransitionDecision(false, null, currentSessionId);
         }
 
+        long now = System.currentTimeMillis();
+        boolean hasSource = sourceTracker != null && sourceTracker.hasPending(now);
+        TrackingDecision incomingDecision = GuiTrackingPolicy.decide(incoming, hasSource);
+
         // Handle outgoing screen
         GuiSessionId hiddenSessionId = null;
         boolean suppressCurrentClose = false;
@@ -57,9 +61,6 @@ public final class GuiLifecycleBridge {
                     manager.destroySession(currentSession.getId());
                 } else {
                     manager.hideSession(currentSession.getId());
-                    if (incoming != null) {
-                        currentSession.markStale();
-                    }
                     hiddenSessionId = currentSession.getId();
                     suppressCurrentClose = cacheMode == ContainerCacheMode.HYBRID;
                 }
@@ -69,11 +70,7 @@ public final class GuiLifecycleBridge {
         // Handle incoming screen
         GuiSessionId activatedSessionId = null;
         if (incoming != null) {
-            long now = System.currentTimeMillis();
-            boolean hasSource = sourceTracker != null && sourceTracker.hasPending(now);
-            TrackingDecision decision = GuiTrackingPolicy.decide(incoming, hasSource);
-
-            if (decision == TrackingDecision.TRACK_AS_TAB) {
+            if (incomingDecision == TrackingDecision.TRACK_AS_TAB) {
                 GuiSessionSource source = null;
                 if (sourceTracker != null) {
                     source = sourceTracker.consumePending(now);

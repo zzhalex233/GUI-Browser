@@ -73,11 +73,7 @@ public abstract class MixinMinecraft {
         GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
         runtime.getLifecycleBridge().onAfterDisplay(currentScreen);
         runtime.setSuppressClosePacket(false);
-        runtime.setBypassServerDistanceCheck(false);
-        runtime.setKeepContainerOpen(
-            currentScreen instanceof net.minecraft.client.gui.inventory.GuiContainer
-            && runtime.getSessionManager().findSessionByScreen(currentScreen) != null
-        );
+        runtime.setKeepContainerOpen(runtime.getSessionManager().getLastServerWindowSessionId() != null);
         guibrowser$transitionDecision = null;
     }
 }
