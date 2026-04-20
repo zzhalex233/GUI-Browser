@@ -196,4 +196,33 @@ class GuiSessionManagerTest {
         assertNotSame(first, second);
         assertEquals(2, manager.listAllSessions().size());
     }
+
+    @Test
+    void renderableSessionFallsBackToForegroundForCurrentScreenDuringResync() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(1, 2, 3), 0);
+        GuiContainer originalScreen = new GuiContainer();
+        GuiContainer replacementScreen = new GuiContainer();
+
+        GuiSession session = manager.registerOrReuseSession(originalScreen, "Chest", source);
+        session.updateScreen(replacementScreen);
+
+        assertSame(session, manager.findRenderableSession(originalScreen, originalScreen));
+        assertSame(session, manager.findRenderableSession(replacementScreen, replacementScreen));
+    }
+
+    @Test
+    void renderableSessionDoesNotFallbackForNonCurrentScreen() {
+        GuiSessionManager manager = new GuiSessionManager();
+        GuiSessionSource source = new GuiSessionSource.BlockSource(new BlockPos(1, 2, 3), 0);
+        GuiContainer originalScreen = new GuiContainer();
+        GuiContainer replacementScreen = new GuiContainer();
+        GuiScreen unrelatedCurrent = new GuiScreen() {
+        };
+
+        GuiSession session = manager.registerOrReuseSession(originalScreen, "Chest", source);
+        session.updateScreen(replacementScreen);
+
+        assertNull(manager.findRenderableSession(originalScreen, unrelatedCurrent));
+    }
 }

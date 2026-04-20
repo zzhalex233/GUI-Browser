@@ -36,7 +36,7 @@ public abstract class MixinGuiScreen {
     private void guibrowser$drawChromeOverlay(int mouseX, int mouseY, float partialTicks, CallbackInfo ci) {
         GuiScreen self = (GuiScreen) (Object) this;
         GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
-        if (runtime.getSessionManager().findSessionByScreen(self) == null) {
+        if (runtime.getSessionManager().findRenderableSession(self, Minecraft.getMinecraft().currentScreen) == null) {
             return;
         }
         ScaledResolution resolution = new ScaledResolution(Minecraft.getMinecraft());
@@ -49,7 +49,7 @@ public abstract class MixinGuiScreen {
     private void guibrowser$interceptChromeClicks(int mouseX, int mouseY, int mouseButton, CallbackInfo ci) {
         GuiScreen self = (GuiScreen) (Object) this;
         GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
-        if (runtime.getSessionManager().findSessionByScreen(self) == null) {
+        if (runtime.getSessionManager().findRenderableSession(self, Minecraft.getMinecraft().currentScreen) == null) {
             return;
         }
         GuiChromeOverlayController controller = runtime.getChromeController();

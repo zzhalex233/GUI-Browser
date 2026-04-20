@@ -119,6 +119,18 @@ public final class GuiSessionManager {
         return null;
     }
 
+    @Nullable
+    public GuiSession findRenderableSession(GuiScreen renderedScreen, @Nullable GuiScreen currentScreen) {
+        GuiSession exact = findSessionByScreen(renderedScreen);
+        if (exact != null) {
+            return exact;
+        }
+        if (renderedScreen == currentScreen) {
+            return getForegroundSession();
+        }
+        return null;
+    }
+
     public GuiSessionId getLastActivatedSessionId() {
         return lastActivatedSessionId;
     }
