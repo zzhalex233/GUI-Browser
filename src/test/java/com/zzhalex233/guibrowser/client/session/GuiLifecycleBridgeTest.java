@@ -122,6 +122,37 @@ class GuiLifecycleBridgeTest {
     }
 
     @Test
+    void switchingBackToTrackedContainerKeepsPendingRestoreForServerResync() {
+        GuiSessionManager manager = new GuiSessionManager();
+        InteractionSourceTracker sourceTracker = new InteractionSourceTracker();
+        GuiLifecycleBridge bridge = new GuiLifecycleBridge(manager, sourceTracker, ContainerCacheMode.HYBRID);
+        GuiContainer containerA = new GuiContainer() {};
+        GuiContainer containerANew = new GuiContainer() {};
+        GuiContainer containerB = new GuiContainer() {};
+        GuiSessionSource sourceA = blockSource(1, 2, 3);
+        GuiSessionSource sourceB = blockSource(4, 5, 6);
+
+        loadSource(sourceTracker, sourceA);
+        bridge.onBeforeDisplay(null, containerA, false);
+        GuiSession sessionA = manager.getForegroundSession();
+        assertNotNull(sessionA);
+
+        loadSource(sourceTracker, sourceB);
+        bridge.onBeforeDisplay(containerA, containerB, false);
+
+        sourceTracker.setPendingForRestore(sourceA, System.currentTimeMillis());
+        GuiLifecycleBridge.TransitionDecision switchDecision = bridge.onBeforeDisplay(containerB, containerA, false);
+
+        assertEquals(sessionA.getId(), switchDecision.getActivatedSessionId());
+        assertTrue(sourceTracker.hasPending(System.currentTimeMillis()));
+
+        bridge.onBeforeDisplay(containerA, containerANew, false);
+
+        assertSame(sessionA, manager.getForegroundSession());
+        assertSame(containerANew, sessionA.getScreen());
+    }
+
+    @Test
     void openingPopupDoesNotMarkTrackedSessionStale() {
         GuiSessionManager manager = new GuiSessionManager();
         InteractionSourceTracker sourceTracker = new InteractionSourceTracker();

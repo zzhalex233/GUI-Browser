@@ -70,6 +70,12 @@ public final class GuiLifecycleBridge {
         // Handle incoming screen
         GuiSessionId activatedSessionId = null;
         if (incoming != null) {
+            GuiSession existingIncomingSession = manager.findSessionByScreen(incoming);
+            if (existingIncomingSession != null) {
+                manager.activateSession(existingIncomingSession.getId());
+                activatedSessionId = existingIncomingSession.getId();
+                return new TransitionDecision(suppressCurrentClose, hiddenSessionId, activatedSessionId);
+            }
             if (incomingDecision == TrackingDecision.TRACK_AS_TAB) {
                 GuiSessionSource source = null;
                 if (sourceTracker != null) {
