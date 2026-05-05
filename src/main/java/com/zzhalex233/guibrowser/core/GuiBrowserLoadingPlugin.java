@@ -2,27 +2,22 @@ package com.zzhalex233.guibrowser.core;
 
 import com.zzhalex233.guibrowser.Reference;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import org.spongepowered.asm.launch.MixinBootstrap;
-import org.spongepowered.asm.mixin.MixinEnvironment;
-import org.spongepowered.asm.mixin.Mixins;
+import zone.rong.mixinbooter.IEarlyMixinLoader;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @IFMLLoadingPlugin.MCVersion("1.12.2")
 @IFMLLoadingPlugin.Name(Reference.MOD_NAME + " Core")
 @IFMLLoadingPlugin.TransformerExclusions({"com.zzhalex233.guibrowser.core"})
-public final class GuiBrowserLoadingPlugin implements IFMLLoadingPlugin {
-    private static boolean bootstrapped;
-
+public final class GuiBrowserLoadingPlugin implements IFMLLoadingPlugin, IEarlyMixinLoader {
     public GuiBrowserLoadingPlugin() {
-        if (bootstrapped) {
-            return;
-        }
+    }
 
-        MixinBootstrap.init();
-        Mixins.addConfiguration("mixins.guibrowser.json");
-        MixinEnvironment.getDefaultEnvironment().setObfuscationContext("searge");
-        bootstrapped = true;
+    @Override
+    public List<String> getMixinConfigs() {
+        return Collections.singletonList("mixins.guibrowser.json");
     }
 
     @Override

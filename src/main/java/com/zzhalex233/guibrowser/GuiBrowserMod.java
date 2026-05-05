@@ -7,7 +7,10 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod(modid = Reference.MOD_ID, name = Reference.MOD_NAME, version = Reference.VERSION)
+@Mod(modid = Reference.MOD_ID, name = Reference.MOD_NAME, version = Reference.VERSION,
+        dependencies = "required-after:mixinbooter"
+)
+
 public class GuiBrowserMod {
     public static final Logger LOGGER = LogManager.getLogger(Reference.MOD_ID);
 

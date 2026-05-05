@@ -240,7 +240,8 @@ public final class BrowserConfigLoader {
         Object categoryObject = getCategory.invoke(instance, category);
         Method get = categoryObject.getClass().getMethod("get", String.class);
         Object property = get.invoke(categoryObject, key);
-        if (value instanceof Integer integer) {
+        if (value instanceof Integer) {
+            Integer integer = (Integer) value;
             Method set = property.getClass().getMethod("set", int.class);
             set.invoke(property, integer.intValue());
             return;

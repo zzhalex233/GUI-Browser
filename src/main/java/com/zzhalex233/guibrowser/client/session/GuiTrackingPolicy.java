@@ -4,6 +4,8 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.gui.inventory.GuiInventory;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
 
 public final class GuiTrackingPolicy {
@@ -13,7 +15,7 @@ public final class GuiTrackingPolicy {
         EXCLUDE
     }
 
-    private static final Set<String> EXCLUDED_SCREEN_CLASSES = Set.of(
+    private static final Set<String> EXCLUDED_SCREEN_CLASSES = Collections.unmodifiableSet(new java.util.HashSet<String>(Arrays.asList(
         "net.minecraft.client.gui.GuiMainMenu",
         "net.minecraft.client.gui.GuiMultiplayer",
         "net.minecraft.client.gui.GuiWorldSelection",
@@ -25,13 +27,13 @@ public final class GuiTrackingPolicy {
         "net.minecraft.client.gui.GuiScreenWorking",
         "net.minecraft.client.multiplayer.GuiConnecting",
         "net.minecraft.client.gui.inventory.GuiContainerCreative"
-    );
+    )));
 
-    private static final Set<String> TRINKET_PACKAGE_PREFIXES = Set.of(
+    private static final Set<String> TRINKET_PACKAGE_PREFIXES = Collections.unmodifiableSet(new java.util.HashSet<String>(Arrays.asList(
         "c4.curios.",
         "baubles.",
         "vazkii.botania.client.gui.bag."
-    );
+    )));
 
     private GuiTrackingPolicy() {
     }

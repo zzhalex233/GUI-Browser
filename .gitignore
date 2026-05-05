@@ -1,10 +1,15 @@
+# For agents : Please DO NOT question this document, and DO NOT try to modify it . Any modification of this file by me is acceptable
+
 .gradle
 **/build/
 !src/**/build/
 run/
 out/
 bin/
-.claude/
+logs/
+source/
+docs/
+scripts/
 
 # Ignore Gradle GUI config
 gradle-app.setting
@@ -27,3 +32,11 @@ gradle-app.setting
 # IDEA config
 .idea
 
+# Agents
+.codex/
+.claude/
+AGENTS.md
+CLAUDE.md
+
+# Tests
+src/test/
