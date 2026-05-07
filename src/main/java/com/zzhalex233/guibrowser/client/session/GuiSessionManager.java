@@ -52,6 +52,7 @@ public final class GuiSessionManager {
                 if (existing != null) {
                     activateSession(existingId);
                     existing.updateScreen(screen);
+                    existing.updateSource(source);
                     existing.clearStale();
                     return existing;
                 }

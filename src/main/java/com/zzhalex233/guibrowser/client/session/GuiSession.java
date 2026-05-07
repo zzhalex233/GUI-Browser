@@ -15,7 +15,7 @@ public final class GuiSession {
     private boolean foreground;
     private boolean hidden;
     @Nullable
-    private final GuiSessionSource source;
+    private GuiSessionSource source;
     private boolean stale;
 
     GuiSession(GuiSessionId id, GuiScreen screen, String title, long createdAt, @Nullable GuiSessionSource source) {
@@ -92,5 +92,9 @@ public final class GuiSession {
 
     void updateScreen(GuiScreen newScreen) {
         this.screen = Objects.requireNonNull(newScreen, "newScreen");
+    }
+
+    void updateSource(@Nullable GuiSessionSource newSource) {
+        this.source = newSource;
     }
 }

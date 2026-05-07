@@ -6,10 +6,10 @@ import com.zzhalex233.guibrowser.client.popup.GuiBookmarkEditDialog;
 import com.zzhalex233.guibrowser.client.popup.GuiBookmarkPanel;
 import com.zzhalex233.guibrowser.client.popup.GuiHistoryPanel;
 import com.zzhalex233.guibrowser.client.popup.GuiRestoreFailedToast;
-import com.zzhalex233.guibrowser.client.session.ContainerRestoreHandler;
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionId;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
+import com.zzhalex233.guibrowser.client.session.GuiRestoreRequester;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
 import com.zzhalex233.guibrowser.client.session.StaleTabPlaceholderScreen;
 
@@ -23,7 +23,7 @@ public final class GuiChromeOverlayController {
 
     private final GuiSessionManager sessionManager;
     @Nullable
-    private final ContainerRestoreHandler restoreHandler;
+    private final GuiRestoreRequester restoreHandler;
     @Nullable
     private File dataDir;
     private boolean historyPanelOpen;
@@ -33,7 +33,7 @@ public final class GuiChromeOverlayController {
         this(sessionManager, null);
     }
 
-    public GuiChromeOverlayController(GuiSessionManager sessionManager, @Nullable ContainerRestoreHandler restoreHandler) {
+    public GuiChromeOverlayController(GuiSessionManager sessionManager, @Nullable GuiRestoreRequester restoreHandler) {
         this.sessionManager = sessionManager;
         this.restoreHandler = restoreHandler;
     }
@@ -60,16 +60,22 @@ public final class GuiChromeOverlayController {
             return restorePlaceholderSession(session);
         }
 
-        sessionManager.activateSession(sessionId);
         if (!(session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer)) {
+            sessionManager.activateSession(sessionId);
             return TabSwitchResult.DIRECT_SWITCH;
         }
 
         if (restoreHandler != null
                 && session.getSource() != null
                 && !sessionId.equals(sessionManager.getLastServerWindowSessionId())) {
-            restoreHandler.requestSync(session);
+            boolean restored = restoreHandler.requestSync(session);
+            if (!restored) {
+                showRestoreFailedToast(session);
+                return TabSwitchResult.FAILED;
+            }
+            return TabSwitchResult.RESTORE_INITIATED;
         }
+        sessionManager.activateSession(sessionId);
         return TabSwitchResult.DIRECT_SWITCH;
     }
 

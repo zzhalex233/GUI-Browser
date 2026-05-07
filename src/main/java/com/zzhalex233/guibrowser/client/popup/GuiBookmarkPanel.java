@@ -3,9 +3,9 @@ package com.zzhalex233.guibrowser.client.popup;
 import com.zzhalex233.guibrowser.client.chrome.GuiChromeLayout;
 import com.zzhalex233.guibrowser.client.history.GuiBookmarkEntry;
 import com.zzhalex233.guibrowser.client.history.GuiBookmarkStore;
-import com.zzhalex233.guibrowser.client.session.ContainerRestoreHandler;
 import com.zzhalex233.guibrowser.client.session.GuiSession;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
+import com.zzhalex233.guibrowser.client.session.GuiRestoreRequester;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSourceKey;
 import com.zzhalex233.guibrowser.client.session.StaleTabPlaceholderScreen;
@@ -35,7 +35,7 @@ public class GuiBookmarkPanel extends GuiScreen {
     private final GuiBookmarkStore bookmarkStore;
     private final GuiSessionManager sessionManager;
     @Nullable
-    private final ContainerRestoreHandler restoreHandler;
+    private final GuiRestoreRequester restoreHandler;
     @Nullable
     private final File dataDir;
     private int panelX;
@@ -45,7 +45,7 @@ public class GuiBookmarkPanel extends GuiScreen {
 
     public GuiBookmarkPanel(GuiScreen parentScreen, GuiBookmarkStore bookmarkStore,
                             GuiSessionManager sessionManager,
-                            @Nullable ContainerRestoreHandler restoreHandler,
+                            @Nullable GuiRestoreRequester restoreHandler,
                             @Nullable File dataDir) {
         this.parentScreen = parentScreen;
         this.bookmarkStore = bookmarkStore;

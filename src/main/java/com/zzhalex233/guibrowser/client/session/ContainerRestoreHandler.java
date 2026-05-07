@@ -3,17 +3,19 @@ package com.zzhalex233.guibrowser.client.session;
 import com.zzhalex233.guibrowser.client.popup.GuiRestoreFailedToast;
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
 import com.zzhalex233.guibrowser.config.ContainerCacheMode;
+import com.zzhalex233.guibrowser.network.GuiBrowserNetwork;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
 
-public final class ContainerRestoreHandler {
+public final class ContainerRestoreHandler implements GuiRestoreRequester {
 
     private static final long RESTORE_TIMEOUT_MS = 5000L;
 
@@ -34,10 +36,12 @@ public final class ContainerRestoreHandler {
         this.sessionManager = sessionManager;
     }
 
+    @Override
     public boolean requestRestore(GuiSession session) {
         return requestInteraction(session, true);
     }
 
+    @Override
     public boolean requestSync(GuiSession session) {
         return requestInteraction(session, false);
     }
@@ -85,9 +89,18 @@ public final class ContainerRestoreHandler {
         pendingRestoreTimestamp = System.currentTimeMillis();
         pendingRestoreShowsTimeoutToast = showTimeoutToast;
 
+        GuiBrowserRuntime.getInstance().armMouseWarpSuppression();
         sourceTracker.setPendingForRestore(blockSource, System.currentTimeMillis());
-        GuiBrowserRuntime.getInstance().setBypassServerDistanceCheck(true);
-        RemoteInteractionHelper.sendBlockInteraction(player, pos);
+        GuiBrowserNetwork.sendOpenRemoteBlock(
+            blockSource.getDimensionId(),
+            pos,
+            blockSource.getFacing(),
+            EnumHand.MAIN_HAND,
+            blockSource.getHitX(),
+            blockSource.getHitY(),
+            blockSource.getHitZ()
+        );
+        player.swingArm(EnumHand.MAIN_HAND);
         return true;
     }
 
@@ -109,6 +122,7 @@ public final class ContainerRestoreHandler {
         pendingRestoreTimestamp = System.currentTimeMillis();
         pendingRestoreShowsTimeoutToast = showTimeoutToast;
 
+        GuiBrowserRuntime.getInstance().armMouseWarpSuppression();
         sourceTracker.setPendingForRestore(entitySource, System.currentTimeMillis());
         mc.playerController.interactWithEntity(player, entity, EnumHand.MAIN_HAND);
         return true;

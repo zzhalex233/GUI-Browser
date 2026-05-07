@@ -31,9 +31,14 @@ public abstract class MixinMinecraft {
         locals = LocalCapture.CAPTURE_FAILHARD
     )
     private void guibrowser$beforeDisplay(@Nullable GuiScreen guiScreenIn, CallbackInfo callbackInfo, GuiScreen current, GuiOpenEvent event) {
-        guibrowser$transitionDecision = GuiBrowserRuntime.getInstance().getLifecycleBridge().onBeforeDisplay(current, guiScreenIn, false);
+        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
+        guibrowser$transitionDecision = runtime.getLifecycleBridge().onBeforeDisplay(current, guiScreenIn, false);
         if (guibrowser$transitionDecision != null && guibrowser$transitionDecision.shouldSuppressCurrentClose()) {
-            GuiBrowserRuntime.getInstance().setSuppressClosePacket(true);
+            runtime.setSuppressClosePacket(true);
+        }
+        if (current != null && guiScreenIn != null
+                && runtime.getSessionManager().findRenderableSession(current, current) != null) {
+            runtime.armMouseWarpSuppression();
         }
     }
 
@@ -73,7 +78,7 @@ public abstract class MixinMinecraft {
         GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
         runtime.getLifecycleBridge().onAfterDisplay(currentScreen);
         runtime.setSuppressClosePacket(false);
-        runtime.setKeepContainerOpen(runtime.getSessionManager().getLastServerWindowSessionId() != null);
+        runtime.restoreMouseIfNeeded(currentScreen);
         guibrowser$transitionDecision = null;
     }
 }

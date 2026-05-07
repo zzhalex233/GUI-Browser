@@ -9,6 +9,9 @@ import com.zzhalex233.guibrowser.client.session.InteractionSourceTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.server.integrated.IntegratedServer;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -79,8 +82,19 @@ public final class ClientForgeEventHandler {
     @SubscribeEvent
     public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (!event.getWorld().isRemote) return;
+        BlockPos pos = event.getPos();
+        EnumFacing facing = event.getFace() == null ? EnumFacing.UP : event.getFace();
+        Vec3d hitVec = event.getHitVec();
+        float hitX = 0.5f;
+        float hitY = 1.0f;
+        float hitZ = 0.5f;
+        if (hitVec != null) {
+            hitX = (float) (hitVec.x - pos.getX());
+            hitY = (float) (hitVec.y - pos.getY());
+            hitZ = (float) (hitVec.z - pos.getZ());
+        }
         sourceTracker.setPending(
-            new GuiSessionSource.BlockSource(event.getPos(), event.getEntityPlayer().dimension),
+            new GuiSessionSource.BlockSource(pos, event.getEntityPlayer().dimension, facing, hitX, hitY, hitZ),
             System.currentTimeMillis()
         );
     }

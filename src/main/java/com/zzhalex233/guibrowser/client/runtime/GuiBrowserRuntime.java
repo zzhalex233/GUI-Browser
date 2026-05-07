@@ -11,6 +11,8 @@ import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSourceValidator;
 import com.zzhalex233.guibrowser.client.session.InteractionSourceTracker;
 import com.zzhalex233.guibrowser.config.BrowserConfig;
+import org.lwjgl.input.Mouse;
+import net.minecraft.client.gui.GuiScreen;
 
 import java.io.File;
 import java.util.Objects;
@@ -32,8 +34,9 @@ public final class GuiBrowserRuntime {
     private final GuiSessionSourceValidator sourceValidator;
 
     private boolean suppressClosePacket;
-    private volatile boolean bypassServerDistanceCheck;
-    private volatile boolean keepContainerOpen;
+    private boolean suppressMouseWarp;
+    private int savedMouseX;
+    private int savedMouseY;
 
     private GuiBrowserRuntime(BrowserConfig config) {
         this(config, null);
@@ -119,25 +122,33 @@ public final class GuiBrowserRuntime {
         this.suppressClosePacket = value;
     }
 
-    public boolean isBypassServerDistanceCheck() {
-        return bypassServerDistanceCheck;
+    public boolean isSuppressMouseWarp() {
+        return suppressMouseWarp;
     }
 
-    public void setBypassServerDistanceCheck(boolean value) {
-        this.bypassServerDistanceCheck = value;
+    public void setSuppressMouseWarp(boolean value) {
+        this.suppressMouseWarp = value;
+    }
+
+    public void armMouseWarpSuppression() {
+        this.suppressMouseWarp = true;
+        this.savedMouseX = Mouse.getX();
+        this.savedMouseY = Mouse.getY();
+    }
+
+    public void restoreMouseIfNeeded(GuiScreen currentScreen) {
+        if (!suppressMouseWarp) {
+            return;
+        }
+        if (currentScreen == null) {
+            return;
+        }
+        Mouse.setCursorPosition(savedMouseX, savedMouseY);
+        suppressMouseWarp = false;
     }
 
     public void clearRestoreTransientState() {
-        this.bypassServerDistanceCheck = false;
         this.sourceTracker.clearRestoreLock();
-    }
-
-    public boolean isKeepContainerOpen() {
-        return keepContainerOpen;
-    }
-
-    public void setKeepContainerOpen(boolean value) {
-        this.keepContainerOpen = value;
     }
 
     public InteractionSourceTracker getSourceTracker() {

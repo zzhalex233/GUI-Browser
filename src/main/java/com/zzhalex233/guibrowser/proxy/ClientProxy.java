@@ -14,6 +14,7 @@ import java.io.File;
 public class ClientProxy extends CommonProxy {
     @Override
     public void preInit() {
+        super.preInit();
         Minecraft minecraft = Minecraft.getMinecraft();
         File configFile = new File(new File(minecraft.gameDir, "config"), "guibrowser.cfg");
         BrowserConfig config = BrowserConfigLoader.load(configFile);

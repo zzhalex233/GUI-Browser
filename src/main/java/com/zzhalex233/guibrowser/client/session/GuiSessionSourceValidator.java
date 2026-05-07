@@ -43,6 +43,9 @@ public final class GuiSessionSourceValidator {
             if (blockSource.getDimensionId() != currentDimensionId) {
                 return true;
             }
+            if (!world.isBlockLoaded(blockSource.getPos())) {
+                return false;
+            }
             return world.isAirBlock(blockSource.getPos());
         }
 
