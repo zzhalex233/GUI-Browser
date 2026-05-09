@@ -9,6 +9,7 @@ import net.minecraft.inventory.Container;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -109,10 +110,15 @@ public final class OpenRemoteBlockGuiMessage implements IMessage {
         remoteGuiPlayer.guibrowser$setRemoteGuiInteraction();
         boolean openedContainer = false;
         try {
+            Vec3d hitVec = RemoteBlockInteractionGeometry.selectForgeEventHitVec(
+                pos,
+                message.hitX,
+                message.hitY,
+                message.hitZ,
+                ForgeHooks.rayTraceEyeHitVec(player,
+                    player.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue() + 1));
             PlayerInteractEvent.RightClickBlock event =
-                ForgeHooks.onRightClickBlock(player, hand, pos, facing,
-                    ForgeHooks.rayTraceEyeHitVec(player,
-                        player.getEntityAttribute(EntityPlayer.REACH_DISTANCE).getAttributeValue() + 1));
+                ForgeHooks.onRightClickBlock(player, hand, pos, facing, hitVec);
             if (!event.isCanceled() && event.getUseBlock() != Event.Result.DENY) {
                 state.getBlock().onBlockActivated(
                     world, pos, state, player, hand, facing, message.hitX, message.hitY, message.hitZ);

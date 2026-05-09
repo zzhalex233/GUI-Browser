@@ -50,8 +50,7 @@ public final class GuiBrowserRuntime {
         this.bookmarkStore = config.isEnableBookmarks() ? new GuiBookmarkStore() : null;
         this.sessionManager = new GuiSessionManager(historyStore, bookmarkStore);
         this.sourceTracker = new InteractionSourceTracker();
-        ContainerRestoreHandler restoreHandler = new ContainerRestoreHandler(
-            config.getContainerCacheMode(), sourceTracker, sessionManager);
+        ContainerRestoreHandler restoreHandler = new ContainerRestoreHandler(sourceTracker, sessionManager);
         this.restoreHandler = restoreHandler;
         this.lifecycleBridge = new GuiLifecycleBridge(sessionManager, sourceTracker, config.getContainerCacheMode());
         this.chromeController = new GuiChromeOverlayController(sessionManager, restoreHandler);

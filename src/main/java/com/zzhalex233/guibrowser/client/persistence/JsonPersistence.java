@@ -23,12 +23,8 @@ public final class JsonPersistence {
     private JsonPersistence() {
     }
 
-    public static File getDataDir(File gameDir) {
-        return new File(gameDir, "guibrowser");
-    }
-
     public static File getWorldDataDir(File gameDir, String worldId) {
-        return new File(new File(gameDir, "guibrowser"), worldId);
+        return new File(new File(new File(gameDir, "saves"), worldId), "guibrowser");
     }
 
     public static void saveJson(File file, JsonElement data) {

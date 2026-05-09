@@ -10,11 +10,14 @@
 
 ## 功能
 
-- 为 GUI 提供浏览器式外壳，将已打开的界面统一纳入标签页管理
-- 支持历史、书签和会话恢复，方便在多个界面之间来回切换
-- 兼容大多数可交互的方块 GUI
-- 超出正常交互范围的容器，也可以正常在标签页中打开查看
-- 对于超出交互范围的容器，仅支持查看界面，不支持直接取出或放入物品
+- 将已打开的 GUI 统一纳入标签页管理，支持快速切换
+- 支持历史记录、书签
+- 兼容所有可交互的方块 GUI
+- 提供了书签管理器，并可在界面中管理文件夹&书签
+
+## 致谢
+
+- 远程 GUI 交互机制部分参考了 [Pointer](https://github.com/CleanroomMC/Pointer) 项目，谢谢喵！
 
 ## 依赖
 
@@ -24,11 +27,11 @@
 
 - 在 Release 页面下载
 
-
 ## 画廊
 
-![](gallery/1.gif) 
-![](gallery/2.gif)
+![](gallery/tabs.gif)
+![](gallery/reach.gif)
+![](gallery/bookmarks.gif)
 
 ---
 
@@ -36,15 +39,18 @@
 
 ## Mod
 
-- Provides a browser-like session management for GUI screens in Minecraft 1.12.2.
+- Provides a browser-like shell and session management for GUIs in Minecraft 1.12.2.
 
 ## Features
 
-- Gives interactive GUIs a browser-style host and organizes opened screens into tabs
-- Supports history, bookmarks, and session restoration for quick switching
-- Works with most interactive block GUIs and switches tabs in a container-aware way
-- GUIs outside normal interaction range can still be opened and viewed in tabs
-- For out-of-range containers, viewing is supported, but item transfer is not
+- Organizes opened GUIs into tabs for quick switching
+- Supports history, bookmarks
+- Works with almost all interactive block GUIs and switches tabs in a container-aware way
+- Provide bookmark manager, for managing folders & bookmarks
+
+## Acknowledgment
+
+- The remote GUI interaction was inspired by the [Pointer](https://github.com/CleanroomMC/Pointer) project
 
 ## Dependencies
 
@@ -56,5 +62,6 @@
 
 ## Gallery
 
-![](gallery/1.gif) 
-![](gallery/2.gif)
+![](gallery/tabs.gif)
+![](gallery/reach.gif)
+![](gallery/bookmarks.gif)

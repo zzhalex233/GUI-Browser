@@ -14,58 +14,120 @@ import java.util.Map;
 
 public final class GuiBookmarkStore {
 
-    private final LinkedHashMap<GuiSessionSourceKey, GuiBookmarkEntry> bookmarks = new LinkedHashMap<>();
+    private final GuiBookmarkFolder rootFolder = new GuiBookmarkFolder("");
+    private final Map<GuiSessionSourceKey.BlockKey, GuiBookmarkEntry> entryIndex = new LinkedHashMap<>();
+
+    public GuiBookmarkFolder getRootFolder() {
+        return rootFolder;
+    }
+
+    public void addFolderPath(String path) {
+        ensureFolder(path);
+    }
+
+    public void addBookmark(String folderPath, GuiSessionSourceKey.BlockKey key, String title, String screenClassName) {
+        remove(key);
+        GuiBookmarkEntry entry = new GuiBookmarkEntry(key, title, screenClassName, System.currentTimeMillis(), normalizePath(folderPath));
+        entryIndex.put(key, entry);
+        ensureFolder(folderPath).addEntry(entry);
+    }
 
     public void addBookmark(GuiSessionSourceKey key, String title, String screenClassName) {
-        bookmarks.put(key, new GuiBookmarkEntry(title, screenClassName, System.currentTimeMillis(), key));
+        if (key instanceof GuiSessionSourceKey.BlockKey) {
+            addBookmark("", (GuiSessionSourceKey.BlockKey) key, title, screenClassName);
+        }
     }
 
-    public void removeBookmark(GuiSessionSourceKey key) {
-        bookmarks.remove(key);
-    }
-
-    public boolean isBookmarked(GuiSessionSourceKey key) {
-        return bookmarks.containsKey(key);
+    public GuiBookmarkEntry findEntry(GuiSessionSourceKey.BlockKey key) {
+        return entryIndex.get(key);
     }
 
     public GuiBookmarkEntry getBookmark(GuiSessionSourceKey key) {
-        return bookmarks.get(key);
+        return key instanceof GuiSessionSourceKey.BlockKey ? entryIndex.get(key) : null;
+    }
+
+    public boolean isBookmarked(GuiSessionSourceKey.BlockKey key) {
+        return entryIndex.containsKey(key);
+    }
+
+    public boolean isBookmarked(GuiSessionSourceKey key) {
+        return key instanceof GuiSessionSourceKey.BlockKey && isBookmarked((GuiSessionSourceKey.BlockKey) key);
+    }
+
+    public void updateTitle(GuiSessionSourceKey.BlockKey key, String newTitle) {
+        GuiBookmarkEntry entry = entryIndex.get(key);
+        if (entry != null) {
+            entry.setTitle(newTitle);
+        }
     }
 
     public void updateTitle(GuiSessionSourceKey key, String newTitle) {
-        GuiBookmarkEntry entry = bookmarks.get(key);
-        if (entry != null) {
-            entry.setSessionTitle(newTitle);
+        if (key instanceof GuiSessionSourceKey.BlockKey) {
+            updateTitle((GuiSessionSourceKey.BlockKey) key, newTitle);
+        }
+    }
+
+    public void remove(GuiSessionSourceKey.BlockKey key) {
+        GuiBookmarkEntry entry = entryIndex.remove(key);
+        if (entry == null) {
+            return;
+        }
+        removeFromFolder(rootFolder, entry);
+    }
+
+    public void moveBookmark(GuiSessionSourceKey.BlockKey key, String folderPath) {
+        GuiBookmarkEntry entry = entryIndex.get(key);
+        if (entry == null) {
+            return;
+        }
+        removeFromFolder(rootFolder, entry);
+        entry.setFolderPath(normalizePath(folderPath));
+        ensureFolder(folderPath).addEntry(entry);
+    }
+
+    public List<String> folderPaths() {
+        List<String> paths = new ArrayList<>();
+        paths.add("");
+        collectFolderPaths(rootFolder, "", paths);
+        return Collections.unmodifiableList(paths);
+    }
+
+    public void removeBookmark(GuiSessionSourceKey key) {
+        if (key instanceof GuiSessionSourceKey.BlockKey) {
+            remove((GuiSessionSourceKey.BlockKey) key);
         }
     }
 
     public void toggleBookmark(GuiSessionSourceKey key, String title, String screenClassName) {
-        if (isBookmarked(key)) {
-            removeBookmark(key);
+        if (!(key instanceof GuiSessionSourceKey.BlockKey)) {
+            return;
+        }
+        GuiSessionSourceKey.BlockKey blockKey = (GuiSessionSourceKey.BlockKey) key;
+        if (isBookmarked(blockKey)) {
+            remove(blockKey);
         } else {
-            addBookmark(key, title, screenClassName);
+            addBookmark("", blockKey, title, screenClassName);
         }
     }
 
-    public Map<GuiSessionSourceKey, GuiBookmarkEntry> allBookmarks() {
-        return Collections.unmodifiableMap(bookmarks);
-    }
-
     public List<GuiBookmarkEntry> allEntries() {
-        return Collections.unmodifiableList(new ArrayList<>(bookmarks.values()));
+        List<GuiBookmarkEntry> entries = new ArrayList<>();
+        rootFolder.collectEntries(entries);
+        return Collections.unmodifiableList(entries);
     }
 
     public int size() {
-        return bookmarks.size();
+        return entryIndex.size();
     }
 
     public void clear() {
-        bookmarks.clear();
+        entryIndex.clear();
+        rootFolder.clear();
     }
 
     public void save(File dataDir) {
         JsonArray arr = new JsonArray();
-        for (GuiBookmarkEntry entry : bookmarks.values()) {
+        for (GuiBookmarkEntry entry : entryIndex.values()) {
             arr.add(entry.toJson());
         }
         JsonPersistence.saveJson(new File(dataDir, "bookmarks.json"), arr);
@@ -73,13 +135,51 @@ public final class GuiBookmarkStore {
 
     public void load(File dataDir) {
         JsonElement element = JsonPersistence.loadJson(new File(dataDir, "bookmarks.json"));
-        if (!element.isJsonArray()) return;
-        bookmarks.clear();
+        clear();
+        if (!element.isJsonArray()) {
+            return;
+        }
         for (JsonElement e : element.getAsJsonArray()) {
             GuiBookmarkEntry entry = GuiBookmarkEntry.fromJson(e);
             if (entry != null) {
-                bookmarks.put(entry.getSourceKey(), entry);
+                entryIndex.put(entry.getSourceKey(), entry);
+                ensureFolder(entry.getFolderPath()).addEntry(entry);
             }
         }
+    }
+
+    private GuiBookmarkFolder ensureFolder(String path) {
+        GuiBookmarkFolder folder = rootFolder;
+        if (path == null || path.trim().isEmpty()) {
+            return folder;
+        }
+        for (String part : path.split("/")) {
+            if (part.trim().isEmpty()) {
+                continue;
+            }
+            folder = folder.folder(part.trim());
+        }
+        return folder;
+    }
+
+    private void removeFromFolder(GuiBookmarkFolder folder, GuiBookmarkEntry entry) {
+        if (folder.removeEntry(entry)) {
+            return;
+        }
+        for (GuiBookmarkFolder child : folder.getChildren()) {
+            removeFromFolder(child, entry);
+        }
+    }
+
+    private void collectFolderPaths(GuiBookmarkFolder folder, String prefix, List<String> paths) {
+        for (GuiBookmarkFolder child : folder.getChildren()) {
+            String path = prefix.isEmpty() ? child.getName() : prefix + "/" + child.getName();
+            paths.add(path);
+            collectFolderPaths(child, path, paths);
+        }
+    }
+
+    private String normalizePath(String path) {
+        return path == null ? "" : path.trim();
     }
 }

@@ -83,38 +83,4 @@ public abstract class GuiSessionSource {
                 + "}";
         }
     }
-
-    public static final class EntitySource extends GuiSessionSource {
-        private final int entityId;
-
-        public EntitySource(int entityId) {
-            this.entityId = entityId;
-        }
-
-        public int getEntityId() {
-            return entityId;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) {
-                return true;
-            }
-            if (!(other instanceof EntitySource)) {
-                return false;
-            }
-            EntitySource that = (EntitySource) other;
-            return entityId == that.entityId;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(entityId);
-        }
-
-        @Override
-        public String toString() {
-            return "EntitySource{entityId=" + entityId + "}";
-        }
-    }
 }

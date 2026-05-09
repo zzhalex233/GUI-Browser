@@ -16,7 +16,6 @@ public final class GuiSession {
     private boolean hidden;
     @Nullable
     private GuiSessionSource source;
-    private boolean stale;
 
     GuiSession(GuiSessionId id, GuiScreen screen, String title, long createdAt, @Nullable GuiSessionSource source) {
         this.id = Objects.requireNonNull(id, "id");
@@ -27,7 +26,6 @@ public final class GuiSession {
         this.foreground = true;
         this.hidden = false;
         this.source = source;
-        this.stale = false;
     }
 
     public GuiSessionId getId() {
@@ -76,18 +74,6 @@ public final class GuiSession {
     @Nullable
     public GuiSessionSource getSource() {
         return source;
-    }
-
-    public boolean isStale() {
-        return stale;
-    }
-
-    public void markStale() {
-        this.stale = true;
-    }
-
-    public void clearStale() {
-        this.stale = false;
     }
 
     void updateScreen(GuiScreen newScreen) {

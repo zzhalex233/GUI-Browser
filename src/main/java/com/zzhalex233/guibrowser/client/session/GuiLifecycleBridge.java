@@ -1,10 +1,9 @@
 package com.zzhalex233.guibrowser.client.session;
 
 import com.zzhalex233.guibrowser.client.session.GuiTrackingPolicy.TrackingDecision;
-import com.zzhalex233.guibrowser.client.persistence.TabPersistenceManager;
 import com.zzhalex233.guibrowser.config.ContainerCacheMode;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.gui.GuiScreen;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -20,19 +19,13 @@ public final class GuiLifecycleBridge {
     private boolean savedForUnload;
 
     public GuiLifecycleBridge(GuiSessionManager manager) {
-        this(manager, null, ContainerCacheMode.HYBRID, null);
+        this(manager, null, ContainerCacheMode.HYBRID);
     }
 
     public GuiLifecycleBridge(GuiSessionManager manager, @Nullable InteractionSourceTracker sourceTracker, ContainerCacheMode cacheMode) {
-        this(manager, sourceTracker, cacheMode, null);
-    }
-
-    public GuiLifecycleBridge(GuiSessionManager manager, @Nullable InteractionSourceTracker sourceTracker,
-                              ContainerCacheMode cacheMode, @Nullable File dataDir) {
         this.manager = Objects.requireNonNull(manager, "manager");
         this.sourceTracker = sourceTracker;
         this.cacheMode = Objects.requireNonNull(cacheMode, "cacheMode");
-        this.dataDir = dataDir;
     }
 
     public void setDataDir(@Nullable File dataDir) {
@@ -50,7 +43,6 @@ public final class GuiLifecycleBridge {
         boolean hasSource = sourceTracker != null && sourceTracker.hasPending(now);
         TrackingDecision incomingDecision = GuiTrackingPolicy.decide(incoming, hasSource);
 
-        // Handle outgoing screen
         GuiSessionId hiddenSessionId = null;
         boolean suppressCurrentClose = false;
 
@@ -67,13 +59,15 @@ public final class GuiLifecycleBridge {
             }
         }
 
-        // Handle incoming screen
         GuiSessionId activatedSessionId = null;
         if (incoming != null) {
             GuiSession existingIncomingSession = manager.findSessionByScreen(incoming);
             if (existingIncomingSession != null) {
                 manager.activateSession(existingIncomingSession.getId());
                 activatedSessionId = existingIncomingSession.getId();
+                if (incoming instanceof GuiContainer) {
+                    manager.setLastServerWindowSessionId(existingIncomingSession.getId());
+                }
                 return new TransitionDecision(suppressCurrentClose, hiddenSessionId, activatedSessionId);
             }
             if (incomingDecision == TrackingDecision.TRACK_AS_TAB) {
@@ -103,6 +97,9 @@ public final class GuiLifecycleBridge {
             if (!session.isForeground()) {
                 manager.activateSession(session.getId());
             }
+            if (nowVisible instanceof GuiContainer) {
+                manager.setLastServerWindowSessionId(session.getId());
+            }
             return;
         }
 
@@ -125,7 +122,6 @@ public final class GuiLifecycleBridge {
     public void onWorldUnload() {
         if (dataDir != null && !savedForUnload) {
             savedForUnload = true;
-            TabPersistenceManager.save(manager.listAllSessions(), dataDir);
             if (manager.getHistoryStore() != null) {
                 manager.getHistoryStore().save(dataDir);
             }

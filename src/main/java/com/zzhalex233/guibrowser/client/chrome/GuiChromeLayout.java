@@ -2,22 +2,30 @@ package com.zzhalex233.guibrowser.client.chrome;
 
 public final class GuiChromeLayout {
 
-    public static final int TOP_BAR_HEIGHT = 14;
-    public static final int TAB_WIDTH = 60;
-    public static final int TAB_HEIGHT = 14;
+    public static final int TOP_BAR_HEIGHT = 20;
+    public static final int TAB_WIDTH = 112;
+    public static final int TAB_HEIGHT = 18;
     public static final int TAB_GAP = 2;
-    public static final int TAB_CLOSE_SIZE = 7;
-    public static final int TAB_CLOSE_MARGIN = 2;
-    public static final int BUTTON_SIZE = 12;
+    public static final int TAB_ICON_SIZE = 14;
+    public static final int TAB_CLOSE_SIZE = 16;
+    public static final int TAB_CLOSE_MARGIN = 1;
+    public static final int BUTTON_SIZE = 16;
     public static final int BUTTON_GAP = 4;
     public static final int BUTTON_MARGIN_RIGHT = 4;
+    public static final int TAB_LEFT_PADDING = 4;
 
     private final int screenWidth;
     private final int screenHeight;
+    private final int scrollOffset;
 
     public GuiChromeLayout(int screenWidth, int screenHeight) {
+        this(screenWidth, screenHeight, 0);
+    }
+
+    public GuiChromeLayout(int screenWidth, int screenHeight, int scrollOffset) {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
+        this.scrollOffset = Math.max(0, scrollOffset);
     }
 
     public int getTopBarHeight() {
@@ -37,8 +45,9 @@ public final class GuiChromeLayout {
     }
 
     public Rect tabRect(int index) {
-        int x = index * (TAB_WIDTH + TAB_GAP);
-        return new Rect(x, 0, TAB_WIDTH, TAB_HEIGHT);
+        int x = index * (TAB_WIDTH + TAB_GAP) - scrollOffset;
+        int y = (TOP_BAR_HEIGHT - TAB_HEIGHT) / 2;
+        return new Rect(x, y, TAB_WIDTH, TAB_HEIGHT);
     }
 
     public Rect tabCloseRect(int index) {
@@ -61,6 +70,16 @@ public final class GuiChromeLayout {
         return new Rect(x, y, BUTTON_SIZE, BUTTON_SIZE);
     }
 
+    public Rect tabViewportRect() {
+        int right = bookmarkButtonRect().getX() - BUTTON_GAP;
+        return new Rect(0, 0, Math.max(0, right), TOP_BAR_HEIGHT);
+    }
+
+    public int maxScrollOffset(int tabCount) {
+        int contentWidth = tabCount == 0 ? 0 : tabCount * TAB_WIDTH + (tabCount - 1) * TAB_GAP;
+        return Math.max(0, contentWidth - tabViewportRect().getWidth());
+    }
+
     public GuiChromeTarget hitTest(int mouseX, int mouseY, int tabCount) {
         if (!topBarRect().contains(mouseX, mouseY)) {
             return GuiChromeTarget.none();
@@ -72,6 +91,10 @@ public final class GuiChromeLayout {
 
         if (bookmarkButtonRect().contains(mouseX, mouseY)) {
             return GuiChromeTarget.bookmarkButton();
+        }
+
+        if (!tabViewportRect().contains(mouseX, mouseY)) {
+            return GuiChromeTarget.none();
         }
 
         for (int i = 0; i < tabCount; i++) {

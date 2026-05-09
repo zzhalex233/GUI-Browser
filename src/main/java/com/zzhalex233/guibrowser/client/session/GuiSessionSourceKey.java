@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import net.minecraft.util.EnumFacing;
 
 import java.util.Objects;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -25,9 +24,6 @@ public abstract class GuiSessionSourceKey {
         String type = obj.has("type") ? obj.get("type").getAsString() : null;
         if ("block".equals(type)) {
             return BlockKey.fromJson(obj);
-        }
-        if ("entity".equals(type)) {
-            return EntityKey.fromJson(obj);
         }
         return null;
     }
@@ -50,7 +46,6 @@ public abstract class GuiSessionSourceKey {
         if (source instanceof GuiSessionSource.BlockSource) {
             return fromBlockSource((GuiSessionSource.BlockSource) source);
         }
-        // EntitySource cannot produce a persistent key without a live entity reference
         return null;
     }
 
@@ -151,57 +146,6 @@ public abstract class GuiSessionSourceKey {
         @Override
         public String toString() {
             return x + ", " + y + ", " + z + " (dim " + dimensionId + ", facing " + facing + ")";
-        }
-    }
-
-    public static final class EntityKey extends GuiSessionSourceKey {
-        private final String entityUUID;
-        private final String entityClassName;
-
-        public EntityKey(String entityUUID, String entityClassName) {
-            this.entityUUID = Objects.requireNonNull(entityUUID);
-            this.entityClassName = Objects.requireNonNull(entityClassName);
-        }
-
-        public String getEntityUUID() { return entityUUID; }
-        public String getEntityClassName() { return entityClassName; }
-
-        @Override
-        public JsonObject toJson() {
-            JsonObject obj = new JsonObject();
-            obj.addProperty("type", "entity");
-            obj.addProperty("uuid", entityUUID);
-            obj.addProperty("className", entityClassName);
-            return obj;
-        }
-
-        @Nullable
-        static EntityKey fromJson(JsonObject obj) {
-            if (!obj.has("uuid") || !obj.has("className")) {
-                return null;
-            }
-            return new EntityKey(
-                obj.get("uuid").getAsString(),
-                obj.get("className").getAsString()
-            );
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof EntityKey)) return false;
-            EntityKey that = (EntityKey) o;
-            return entityUUID.equals(that.entityUUID);
-        }
-
-        @Override
-        public int hashCode() {
-            return entityUUID.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return entityClassName + " (" + entityUUID.substring(0, 8) + "...)";
         }
     }
 }

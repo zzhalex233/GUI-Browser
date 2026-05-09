@@ -11,7 +11,7 @@ import com.zzhalex233.guibrowser.client.session.GuiSessionId;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
 import com.zzhalex233.guibrowser.client.session.GuiRestoreRequester;
 import com.zzhalex233.guibrowser.client.session.GuiSessionSource;
-import com.zzhalex233.guibrowser.client.session.StaleTabPlaceholderScreen;
+import net.minecraft.client.resources.I18n;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -26,8 +26,7 @@ public final class GuiChromeOverlayController {
     private final GuiRestoreRequester restoreHandler;
     @Nullable
     private File dataDir;
-    private boolean historyPanelOpen;
-    private boolean bookmarkPanelOpen;
+    private int tabScrollOffset;
 
     public GuiChromeOverlayController(GuiSessionManager sessionManager) {
         this(sessionManager, null);
@@ -43,7 +42,7 @@ public final class GuiChromeOverlayController {
     }
 
     public List<GuiSession> getTabs() {
-        return sessionManager.listAllSessions();
+        return sessionManager.listAllSessionsForCurrentDimension();
     }
 
     public GuiSession getForegroundSession() {
@@ -56,27 +55,40 @@ public final class GuiChromeOverlayController {
             return TabSwitchResult.FAILED;
         }
 
-        if (session.getScreen() instanceof StaleTabPlaceholderScreen) {
-            return restorePlaceholderSession(session);
-        }
-
         if (!(session.getScreen() instanceof net.minecraft.client.gui.inventory.GuiContainer)) {
             sessionManager.activateSession(sessionId);
             return TabSwitchResult.DIRECT_SWITCH;
         }
 
-        if (restoreHandler != null
-                && session.getSource() != null
-                && !sessionId.equals(sessionManager.getLastServerWindowSessionId())) {
-            boolean restored = restoreHandler.requestSync(session);
-            if (!restored) {
-                showRestoreFailedToast(session);
-                return TabSwitchResult.FAILED;
-            }
-            return TabSwitchResult.RESTORE_INITIATED;
+        if (sessionId.equals(sessionManager.getLastServerWindowSessionId())) {
+            sessionManager.activateSession(sessionId);
+            return TabSwitchResult.DIRECT_SWITCH;
         }
-        sessionManager.activateSession(sessionId);
-        return TabSwitchResult.DIRECT_SWITCH;
+
+        if (restoreHandler == null || session.getSource() == null) {
+            showRestoreFailedToast(session);
+            return TabSwitchResult.FAILED;
+        }
+
+        boolean restored = restoreHandler.requestSync(session);
+        if (!restored) {
+            showRestoreFailedToast(session);
+            return TabSwitchResult.FAILED;
+        }
+        return TabSwitchResult.RESTORE_INITIATED;
+    }
+
+    private void showRestoreFailedToast(GuiSession session) {
+        GuiSessionSource source = session.getSource();
+        String msg;
+        if (source instanceof GuiSessionSource.BlockSource) {
+            GuiSessionSource.BlockSource blockSource = (GuiSessionSource.BlockSource) source;
+            msg = I18n.format("guibrowser.restore.unreachable", session.getTitle(),
+                blockSource.getPos().getX(), blockSource.getPos().getY(), blockSource.getPos().getZ());
+        } else {
+            msg = I18n.format("guibrowser.restore.failed", session.getTitle());
+        }
+        GuiRestoreFailedToast.show(msg);
     }
 
     public void handleTabMiddleClick(GuiSessionId sessionId) {
@@ -102,20 +114,10 @@ public final class GuiChromeOverlayController {
     public void handleHistoryButtonClick(net.minecraft.client.gui.GuiScreen currentScreen) {
         GuiHistoryStore store = sessionManager.getHistoryStore();
         if (store == null) {
-            historyPanelOpen = !historyPanelOpen;
-            bookmarkPanelOpen = false;
             return;
         }
         net.minecraft.client.Minecraft.getMinecraft().displayGuiScreen(
             new GuiHistoryPanel(currentScreen, store, sessionManager, restoreHandler, dataDir));
-    }
-
-    public boolean isHistoryPanelOpen() {
-        return historyPanelOpen;
-    }
-
-    public boolean isBookmarkPanelOpen() {
-        return bookmarkPanelOpen;
     }
 
     public boolean isSessionBookmarked(GuiSessionId sessionId) {
@@ -123,14 +125,40 @@ public final class GuiChromeOverlayController {
     }
 
     public GuiChromeTarget resolveTarget(int mouseX, int mouseY, int screenWidth, int screenHeight) {
-        GuiChromeLayout layout = new GuiChromeLayout(screenWidth, screenHeight);
+        GuiChromeLayout layout = createLayout(screenWidth, screenHeight);
         List<GuiSession> tabs = getTabs();
         return layout.hitTest(mouseX, mouseY, tabs.size());
     }
 
     public boolean isInsideTopBar(int mouseX, int mouseY, int screenWidth, int screenHeight) {
-        GuiChromeLayout layout = new GuiChromeLayout(screenWidth, screenHeight);
+        GuiChromeLayout layout = createLayout(screenWidth, screenHeight);
         return layout.topBarRect().contains(mouseX, mouseY);
+    }
+
+    public GuiChromeLayout createLayout(int screenWidth, int screenHeight) {
+        GuiChromeLayout layout = new GuiChromeLayout(screenWidth, screenHeight, tabScrollOffset);
+        int max = layout.maxScrollOffset(getTabs().size());
+        if (tabScrollOffset > max) {
+            tabScrollOffset = max;
+            layout = new GuiChromeLayout(screenWidth, screenHeight, tabScrollOffset);
+        }
+        return layout;
+    }
+
+    public boolean scrollTabs(int wheelDelta, int screenWidth, int screenHeight) {
+        GuiChromeLayout layout = createLayout(screenWidth, screenHeight);
+        int max = layout.maxScrollOffset(getTabs().size());
+        if (max <= 0 || wheelDelta == 0) {
+            return false;
+        }
+        int direction = wheelDelta > 0 ? -1 : 1;
+        int next = tabScrollOffset + direction * (GuiChromeLayout.TAB_WIDTH / 2);
+        next = Math.max(0, Math.min(max, next));
+        if (next == tabScrollOffset) {
+            return false;
+        }
+        tabScrollOffset = next;
+        return true;
     }
 
     public GuiSessionId getSessionIdForTabIndex(int tabIndex) {
@@ -141,30 +169,4 @@ public final class GuiChromeOverlayController {
         return tabs.get(tabIndex).getId();
     }
 
-    private TabSwitchResult restorePlaceholderSession(GuiSession session) {
-        if (restoreHandler == null || session.getSource() == null) {
-            showRestoreFailedToast(session);
-            return TabSwitchResult.FAILED;
-        }
-
-        boolean restored = restoreHandler.requestRestore(session);
-        if (!restored) {
-            showRestoreFailedToast(session);
-            return TabSwitchResult.FAILED;
-        }
-        return TabSwitchResult.RESTORE_INITIATED;
-    }
-
-    private void showRestoreFailedToast(GuiSession session) {
-        GuiSessionSource source = session.getSource();
-        String msg;
-        if (source instanceof GuiSessionSource.BlockSource) {
-            GuiSessionSource.BlockSource blockSource = (GuiSessionSource.BlockSource) source;
-            msg = "Cannot reach " + session.getTitle() + " at "
-                + blockSource.getPos().getX() + ", " + blockSource.getPos().getY() + ", " + blockSource.getPos().getZ();
-        } else {
-            msg = "Cannot restore " + session.getTitle();
-        }
-        GuiRestoreFailedToast.show(msg);
-    }
 }

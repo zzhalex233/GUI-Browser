@@ -11,6 +11,7 @@ import com.zzhalex233.guibrowser.client.session.GuiSessionId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
+import org.lwjgl.input.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,7 +26,12 @@ public abstract class MixinGuiScreen {
         GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
         Minecraft mc = Minecraft.getMinecraft();
         int currentDimensionId = mc.player == null ? Integer.MIN_VALUE : mc.player.dimension;
-        boolean closedForeground = runtime.getSourceValidator().pruneInvalidSessions(mc.world, currentDimensionId, self);
+        boolean closedForeground = runtime.getSourceValidator().pruneInvalidSessions(
+            mc.world,
+            currentDimensionId,
+            self,
+            runtime.getSessionManager().getHistoryStore()
+        );
         if (closedForeground && runtime.getSessionManager().findSessionByScreen(self) == null) {
             mc.displayGuiScreen(null);
             ci.cancel();
@@ -119,6 +125,29 @@ public abstract class MixinGuiScreen {
                 break;
             default:
                 break;
+        }
+    }
+
+    @Inject(method = "handleMouseInput", at = @At("HEAD"), cancellable = true)
+    private void guibrowser$interceptChromeScroll(CallbackInfo ci) {
+        GuiScreen self = (GuiScreen) (Object) this;
+        GuiBrowserRuntime runtime = GuiBrowserRuntime.getInstance();
+        Minecraft mc = Minecraft.getMinecraft();
+        if (runtime.getSessionManager().findRenderableSession(self, mc.currentScreen) == null) {
+            return;
+        }
+
+        int wheel = Mouse.getEventDWheel();
+        if (wheel == 0) {
+            return;
+        }
+        ScaledResolution resolution = new ScaledResolution(mc);
+        int mouseX = Mouse.getEventX() * resolution.getScaledWidth() / mc.displayWidth;
+        int mouseY = resolution.getScaledHeight() - Mouse.getEventY() * resolution.getScaledHeight() / mc.displayHeight - 1;
+        GuiChromeOverlayController controller = runtime.getChromeController();
+        if (controller.isInsideTopBar(mouseX, mouseY, resolution.getScaledWidth(), resolution.getScaledHeight())
+                && controller.scrollTabs(wheel, resolution.getScaledWidth(), resolution.getScaledHeight())) {
+            ci.cancel();
         }
     }
 }

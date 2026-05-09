@@ -1,19 +1,16 @@
 package com.zzhalex233.guibrowser.client.session;
 
+import com.zzhalex233.guibrowser.client.history.GuiBookmarkStore;
+import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 
-import com.zzhalex233.guibrowser.client.history.GuiBookmarkStore;
-import com.zzhalex233.guibrowser.client.history.GuiHistoryEntry;
-import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
-import com.zzhalex233.guibrowser.client.session.GuiSessionSourceKey;
-
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
-
-import javax.annotation.Nullable;
 
 public final class GuiSessionManager {
     private final LinkedHashMap<GuiSessionId, GuiSession> sessions = new LinkedHashMap<>();
@@ -53,7 +50,6 @@ public final class GuiSessionManager {
                     activateSession(existingId);
                     existing.updateScreen(screen);
                     existing.updateSource(source);
-                    existing.clearStale();
                     return existing;
                 }
                 sourceIndex.remove(source);
@@ -64,7 +60,7 @@ public final class GuiSessionManager {
         if (previousForeground != null) {
             previousForeground.clearForeground();
         }
-        GuiSession session = new GuiSession(GuiSessionId.create(), screen, GuiSessionTitleResolver.resolve(screen, title), now, source);
+        GuiSession session = new GuiSession(GuiSessionId.create(), screen, GuiSessionTitleResolver.resolve(screen, title, source), now, source);
         session.markForeground(now);
         sessions.put(session.getId(), session);
         foregroundSessionId = session.getId();
@@ -74,24 +70,6 @@ public final class GuiSessionManager {
             sourceIndex.put(source, session.getId());
         }
 
-        recordHistory(session.getTitle(), GuiHistoryEntry.Action.OPENED, session.getSource());
-        return session;
-    }
-
-    public GuiSession registerStaleSession(String title, GuiSessionSource source) {
-        Objects.requireNonNull(source, "source");
-        // Skip if a session with this source already exists
-        GuiSessionId existingId = sourceIndex.get(source);
-        if (existingId != null && sessions.containsKey(existingId)) {
-            return sessions.get(existingId);
-        }
-        long now = System.currentTimeMillis();
-        GuiScreen placeholder = new StaleTabPlaceholderScreen(title);
-        GuiSession session = new GuiSession(GuiSessionId.create(), placeholder, title, now, source);
-        session.markStale();
-        session.markHidden();
-        sessions.put(session.getId(), session);
-        sourceIndex.put(source, session.getId());
         return session;
     }
 
@@ -151,7 +129,6 @@ public final class GuiSessionManager {
         if (id.equals(foregroundSessionId)) {
             foregroundSessionId = null;
         }
-        recordHistory(session.getTitle(), GuiHistoryEntry.Action.HIDDEN, session.getSource());
     }
 
     public void activateSession(GuiSessionId id) {
@@ -164,10 +141,13 @@ public final class GuiSessionManager {
         session.markForeground(now);
         foregroundSessionId = id;
         lastActivatedSessionId = id;
-        recordHistory(session.getTitle(), GuiHistoryEntry.Action.ACTIVATED, session.getSource());
     }
 
     public void destroySession(GuiSessionId id) {
+        destroySession(id, true);
+    }
+
+    public void destroySession(GuiSessionId id, boolean recordHistory) {
         GuiSession removed = sessions.remove(id);
         if (removed == null) {
             return;
@@ -178,13 +158,15 @@ public final class GuiSessionManager {
         if (id.equals(foregroundSessionId)) {
             foregroundSessionId = null;
         }
-        if (id.equals(lastServerWindowSessionId)) {
-            lastServerWindowSessionId = null;
-        }
         if (id.equals(lastActivatedSessionId)) {
             lastActivatedSessionId = findMostRecentlyActivatedSessionId();
         }
-        recordHistory(removed.getTitle(), GuiHistoryEntry.Action.DESTROYED, removed.getSource());
+        if (id.equals(lastServerWindowSessionId)) {
+            lastServerWindowSessionId = null;
+        }
+        if (recordHistory) {
+            recordClosed(removed);
+        }
     }
 
     public List<GuiSession> listVisibleTabs() {
@@ -201,16 +183,46 @@ public final class GuiSessionManager {
         return new ArrayList<>(sessions.values());
     }
 
+    public List<GuiSession> listVisibleTabsForDimension(int dimensionId) {
+        List<GuiSession> visible = new ArrayList<>();
+        for (GuiSession session : sessions.values()) {
+            if (!session.isHidden() && belongsToDimension(session, dimensionId)) {
+                visible.add(session);
+            }
+        }
+        return visible;
+    }
+
+    public List<GuiSession> listAllSessionsForDimension(int dimensionId) {
+        List<GuiSession> filtered = new ArrayList<>();
+        for (GuiSession session : sessions.values()) {
+            if (belongsToDimension(session, dimensionId)) {
+                filtered.add(session);
+            }
+        }
+        return filtered;
+    }
+
+    public List<GuiSession> listAllSessionsForCurrentDimension() {
+        if (Minecraft.getMinecraft().player == null) {
+            return listAllSessions();
+        }
+        return listAllSessionsForDimension(Minecraft.getMinecraft().player.dimension);
+    }
+
+    public List<GuiSession> listVisibleTabsForCurrentDimension() {
+        if (Minecraft.getMinecraft().player == null) {
+            return listVisibleTabs();
+        }
+        return listVisibleTabsForDimension(Minecraft.getMinecraft().player.dimension);
+    }
+
     public void clearForWorldUnload() {
-        recordHistory("*", GuiHistoryEntry.Action.CLEARED_ON_UNLOAD);
         sessions.clear();
         sourceIndex.clear();
         foregroundSessionId = null;
         lastActivatedSessionId = null;
         lastServerWindowSessionId = null;
-        if (bookmarkStore != null) {
-            bookmarkStore.clear();
-        }
     }
 
     public void toggleBookmark(GuiSessionId id) {
@@ -268,14 +280,28 @@ public final class GuiSessionManager {
         return session;
     }
 
-    private void recordHistory(String title, GuiHistoryEntry.Action action) {
-        recordHistory(title, action, null);
+    private void recordClosed(GuiSession session) {
+        if (historyStore == null) {
+            return;
+        }
+        GuiSessionSource source = session.getSource();
+        if (source == null) {
+            return;
+        }
+        GuiSessionSourceKey key = GuiSessionSourceKey.fromSource(source);
+        if (key instanceof GuiSessionSourceKey.BlockKey) {
+            historyStore.recordClosed(session.getTitle(), (GuiSessionSourceKey.BlockKey) key, System.currentTimeMillis());
+        }
     }
 
-    private void recordHistory(String title, GuiHistoryEntry.Action action, @Nullable GuiSessionSource source) {
-        if (historyStore != null) {
-            GuiSessionSourceKey sourceKey = source != null ? GuiSessionSourceKey.fromSource(source) : null;
-            historyStore.record(title, action, sourceKey);
+    private boolean belongsToDimension(GuiSession session, int dimensionId) {
+        GuiSessionSource source = session.getSource();
+        if (source == null) {
+            return true;
         }
+        if (source instanceof GuiSessionSource.BlockSource) {
+            return ((GuiSessionSource.BlockSource) source).getDimensionId() == dimensionId;
+        }
+        return true;
     }
 }

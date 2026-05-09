@@ -2,6 +2,8 @@ package com.zzhalex233.guibrowser.client.session;
 
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.world.World;
+import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
+import com.zzhalex233.guibrowser.client.session.GuiSessionSourceKey;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -16,6 +18,11 @@ public final class GuiSessionSourceValidator {
     }
 
     public boolean pruneInvalidSessions(@Nullable World world, int currentDimensionId, @Nullable GuiScreen currentScreen) {
+        return pruneInvalidSessions(world, currentDimensionId, currentScreen, null);
+    }
+
+    public boolean pruneInvalidSessions(@Nullable World world, int currentDimensionId, @Nullable GuiScreen currentScreen,
+                                        @Nullable GuiHistoryStore historyStore) {
         if (world == null) {
             return false;
         }
@@ -27,7 +34,10 @@ public final class GuiSessionSourceValidator {
                 if (session.getScreen() == currentScreen) {
                     closedForeground = true;
                 }
-                sessionManager.destroySession(session.getId());
+                sessionManager.destroySession(session.getId(), false);
+                if (historyStore != null && session.getSource() instanceof GuiSessionSource.BlockSource) {
+                    historyStore.remove(GuiSessionSourceKey.fromBlockSource((GuiSessionSource.BlockSource) session.getSource()));
+                }
             }
         }
         return closedForeground;
@@ -41,17 +51,12 @@ public final class GuiSessionSourceValidator {
         if (source instanceof GuiSessionSource.BlockSource) {
             GuiSessionSource.BlockSource blockSource = (GuiSessionSource.BlockSource) source;
             if (blockSource.getDimensionId() != currentDimensionId) {
-                return true;
+                return false;
             }
             if (!world.isBlockLoaded(blockSource.getPos())) {
                 return false;
             }
             return world.isAirBlock(blockSource.getPos());
-        }
-
-        if (source instanceof GuiSessionSource.EntitySource) {
-            GuiSessionSource.EntitySource entitySource = (GuiSessionSource.EntitySource) source;
-            return world.getEntityByID(entitySource.getEntityId()) == null;
         }
 
         return false;

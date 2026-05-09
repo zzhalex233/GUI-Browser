@@ -1,6 +1,5 @@
 package com.zzhalex233.guibrowser.client.event;
 
-import com.zzhalex233.guibrowser.client.persistence.TabPersistenceManager;
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
 import com.zzhalex233.guibrowser.client.session.GuiLifecycleBridge;
 import com.zzhalex233.guibrowser.client.session.GuiSessionManager;
@@ -57,26 +56,10 @@ public final class ClientForgeEventHandler {
             if (worldId != null) {
                 runtime.updateDataDirForWorld(worldId);
             }
-            if (sessionManager != null && runtime.getDataDir() != null) {
-                TabPersistenceManager.restoreAsStale(sessionManager, runtime.getDataDir());
+            if (sessionManager != null) {
+                sessionManager.clearForWorldUnload();
             }
         });
-    }
-
-    private static String deriveWorldId(Minecraft mc) {
-        IntegratedServer server = mc.getIntegratedServer();
-        if (server != null) {
-            return sanitizeDirName(server.getFolderName());
-        }
-        ServerData serverData = mc.getCurrentServerData();
-        if (serverData != null && serverData.serverIP != null) {
-            return sanitizeDirName(serverData.serverIP);
-        }
-        return null;
-    }
-
-    private static String sanitizeDirName(String name) {
-        return name.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
     @SubscribeEvent
@@ -102,9 +85,22 @@ public final class ClientForgeEventHandler {
     @SubscribeEvent
     public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (!event.getWorld().isRemote) return;
-        sourceTracker.setPending(
-            new GuiSessionSource.EntitySource(event.getTarget().getEntityId()),
-            System.currentTimeMillis()
-        );
+        sourceTracker.clear();
+    }
+
+    private static String deriveWorldId(Minecraft mc) {
+        IntegratedServer server = mc.getIntegratedServer();
+        if (server != null) {
+            return sanitizeDirName(server.getFolderName());
+        }
+        ServerData serverData = mc.getCurrentServerData();
+        if (serverData != null && serverData.serverIP != null) {
+            return sanitizeDirName(serverData.serverIP);
+        }
+        return null;
+    }
+
+    private static String sanitizeDirName(String name) {
+        return name.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
     }
 }

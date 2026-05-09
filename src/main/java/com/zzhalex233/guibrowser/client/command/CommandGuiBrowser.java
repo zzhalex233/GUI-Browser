@@ -1,6 +1,5 @@
 package com.zzhalex233.guibrowser.client.command;
 
-import com.zzhalex233.guibrowser.client.history.GuiHistoryEntry;
 import com.zzhalex233.guibrowser.client.history.GuiHistoryStore;
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
 import com.zzhalex233.guibrowser.client.session.GuiSession;
@@ -98,13 +97,15 @@ public class CommandGuiBrowser extends CommandBase {
             sender.sendMessage(new TextComponentString("History tracking is not enabled."));
             return;
         }
-        List<GuiHistoryEntry> entries = store.entries();
-        sender.sendMessage(new TextComponentString("History entries: " + entries.size()));
+        int dimensionId = sender.getEntityWorld() == null ? Integer.MIN_VALUE : sender.getEntityWorld().provider.getDimension();
+        List<com.zzhalex233.guibrowser.client.history.GuiHistoryEntry> entries = store.entriesForDimension(dimensionId);
+        sender.sendMessage(new TextComponentString("History entries in dim " + dimensionId + ": " + entries.size()));
         int start = Math.max(0, entries.size() - 10);
         for (int i = start; i < entries.size(); i++) {
-            GuiHistoryEntry entry = entries.get(i);
+            com.zzhalex233.guibrowser.client.history.GuiHistoryEntry entry = entries.get(i);
             sender.sendMessage(new TextComponentString(
-                    "  " + entry.getSessionTitle() + " - " + entry.getAction().name().toLowerCase()));
+                    "  " + entry.getSessionTitle() + " @ "
+                        + entry.getSourceKey().getX() + ", " + entry.getSourceKey().getY() + ", " + entry.getSourceKey().getZ()));
         }
     }
 
@@ -123,8 +124,7 @@ public class CommandGuiBrowser extends CommandBase {
 
         for (GuiSession session : manager.listAllSessions()) {
             String sourceStr = formatSource(session.getSource());
-            String staleStr = session.isStale() ? " [stale]" : "";
-            sender.sendMessage(new TextComponentString("  " + session.getTitle() + " source=" + sourceStr + staleStr));
+            sender.sendMessage(new TextComponentString("  " + session.getTitle() + " source=" + sourceStr));
         }
     }
 
@@ -134,9 +134,6 @@ public class CommandGuiBrowser extends CommandBase {
         }
         if (source instanceof GuiSessionSource.BlockSource) {
             return ((GuiSessionSource.BlockSource) source).getPos().toString();
-        }
-        if (source instanceof GuiSessionSource.EntitySource) {
-            return "entity#" + ((GuiSessionSource.EntitySource) source).getEntityId();
         }
         return source.toString();
     }

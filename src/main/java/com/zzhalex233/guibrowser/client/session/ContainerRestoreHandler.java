@@ -2,16 +2,14 @@ package com.zzhalex233.guibrowser.client.session;
 
 import com.zzhalex233.guibrowser.client.popup.GuiRestoreFailedToast;
 import com.zzhalex233.guibrowser.client.runtime.GuiBrowserRuntime;
-import com.zzhalex233.guibrowser.config.ContainerCacheMode;
 import com.zzhalex233.guibrowser.network.GuiBrowserNetwork;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 
 import javax.annotation.Nullable;
 
@@ -19,7 +17,6 @@ public final class ContainerRestoreHandler implements GuiRestoreRequester {
 
     private static final long RESTORE_TIMEOUT_MS = 5000L;
 
-    private final ContainerCacheMode cacheMode;
     private final InteractionSourceTracker sourceTracker;
     private final GuiSessionManager sessionManager;
 
@@ -28,10 +25,8 @@ public final class ContainerRestoreHandler implements GuiRestoreRequester {
     private long pendingRestoreTimestamp;
     private boolean pendingRestoreShowsTimeoutToast;
 
-    public ContainerRestoreHandler(ContainerCacheMode cacheMode,
-                                   InteractionSourceTracker sourceTracker,
+    public ContainerRestoreHandler(InteractionSourceTracker sourceTracker,
                                    GuiSessionManager sessionManager) {
-        this.cacheMode = cacheMode;
         this.sourceTracker = sourceTracker;
         this.sessionManager = sessionManager;
     }
@@ -44,6 +39,24 @@ public final class ContainerRestoreHandler implements GuiRestoreRequester {
     @Override
     public boolean requestSync(GuiSession session) {
         return requestInteraction(session, false);
+    }
+
+    @Override
+    public boolean requestRestore(String title, GuiSessionSource source) {
+        if (source == null) {
+            return false;
+        }
+
+        Minecraft mc = Minecraft.getMinecraft();
+        EntityPlayerSP player = mc.player;
+        if (player == null) {
+            return false;
+        }
+
+        if (source instanceof GuiSessionSource.BlockSource) {
+            return restoreBlock((GuiSessionSource.BlockSource) source, null, mc, player, false);
+        }
+        return false;
     }
 
     private boolean requestInteraction(GuiSession session, boolean showTimeoutToast) {
@@ -65,14 +78,11 @@ public final class ContainerRestoreHandler implements GuiRestoreRequester {
         if (source instanceof GuiSessionSource.BlockSource) {
             return restoreBlock((GuiSessionSource.BlockSource) source, session, mc, player, showTimeoutToast);
         }
-        if (source instanceof GuiSessionSource.EntitySource) {
-            return restoreEntity((GuiSessionSource.EntitySource) source, session, mc, player, showTimeoutToast);
-        }
         return false;
     }
 
     private boolean restoreBlock(GuiSessionSource.BlockSource blockSource,
-                                 GuiSession session,
+                                 @Nullable GuiSession session,
                                  Minecraft mc,
                                  EntityPlayerSP player,
                                  boolean showTimeoutToast) {
@@ -85,9 +95,11 @@ public final class ContainerRestoreHandler implements GuiRestoreRequester {
             return false;
         }
 
-        pendingRestoreSessionId = session.getId();
-        pendingRestoreTimestamp = System.currentTimeMillis();
-        pendingRestoreShowsTimeoutToast = showTimeoutToast;
+        if (session != null) {
+            pendingRestoreSessionId = session.getId();
+            pendingRestoreTimestamp = System.currentTimeMillis();
+            pendingRestoreShowsTimeoutToast = showTimeoutToast;
+        }
 
         GuiBrowserRuntime.getInstance().armMouseWarpSuppression();
         sourceTracker.setPendingForRestore(blockSource, System.currentTimeMillis());
@@ -104,42 +116,18 @@ public final class ContainerRestoreHandler implements GuiRestoreRequester {
         return true;
     }
 
-    private boolean restoreEntity(GuiSessionSource.EntitySource entitySource,
-                                  GuiSession session,
-                                  Minecraft mc,
-                                  EntityPlayerSP player,
-                                  boolean showTimeoutToast) {
-        World world = mc.world;
-        if (world == null) {
-            return false;
-        }
-        Entity entity = world.getEntityByID(entitySource.getEntityId());
-        if (entity == null) {
-            return false;
-        }
-
-        pendingRestoreSessionId = session.getId();
-        pendingRestoreTimestamp = System.currentTimeMillis();
-        pendingRestoreShowsTimeoutToast = showTimeoutToast;
-
-        GuiBrowserRuntime.getInstance().armMouseWarpSuppression();
-        sourceTracker.setPendingForRestore(entitySource, System.currentTimeMillis());
-        mc.playerController.interactWithEntity(player, entity, EnumHand.MAIN_HAND);
-        return true;
-    }
-
     public void tickPendingRestore() {
         if (pendingRestoreSessionId == null) {
             return;
         }
 
         GuiSession session = sessionManager.findSession(pendingRestoreSessionId);
-        if (pendingRestoreSessionId.equals(sessionManager.getLastServerWindowSessionId())) {
-            clearPendingRestore(false, session);
-            return;
-        }
         if (session == null) {
             clearPendingRestore(false, null);
+            return;
+        }
+        if (pendingRestoreSessionId.equals(sessionManager.getLastServerWindowSessionId())) {
+            clearPendingRestore(false, session);
             return;
         }
         if (System.currentTimeMillis() - pendingRestoreTimestamp > RESTORE_TIMEOUT_MS) {
@@ -152,7 +140,7 @@ public final class ContainerRestoreHandler implements GuiRestoreRequester {
         pendingRestoreShowsTimeoutToast = false;
         GuiBrowserRuntime.getInstance().clearRestoreTransientState();
         if (showTimeoutToast && session != null) {
-            GuiRestoreFailedToast.show("Restore timed out: " + session.getTitle());
+            GuiRestoreFailedToast.show(I18n.format("guibrowser.restore.timeout", session.getTitle()));
         }
     }
 }

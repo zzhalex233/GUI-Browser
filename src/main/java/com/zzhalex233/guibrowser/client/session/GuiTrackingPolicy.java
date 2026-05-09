@@ -81,12 +81,4 @@ public final class GuiTrackingPolicy {
         // 8. GuiContainer AND !hasSource -> EXCLUDE (safety fallback)
         return TrackingDecision.EXCLUDE;
     }
-
-    /**
-     * @deprecated Use {@link #decide(GuiScreen, boolean)} instead.
-     */
-    @Deprecated
-    public static boolean shouldTrack(GuiScreen screen) {
-        return decide(screen, true) == TrackingDecision.TRACK_AS_TAB;
-    }
 }
