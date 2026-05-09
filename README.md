@@ -1,4 +1,5 @@
 # GUI Browser
+![](gallery/logo.png)
 
 简体中文 | [English](#english)
 
